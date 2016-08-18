@@ -1,0 +1,6 @@
+package: css_above_the_fold
+version: '0.1.0'
+author: 'Adrian Kühnis'
+
+requires:
+    redaxo: ^5.1.0
