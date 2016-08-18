@@ -23,13 +23,15 @@ cssfirst_getAjax = function(){
 }
 if ('' != cssabove_url && '' == location.hash) {
     window.addEventListener('load', function(){
-        var sheets = document.styleSheets;
-        var css = criticalCSS(sheets);
-        var formData = new FormData();
-        formData.append("css", css);
-        var ajax = cssfirst_getAjax();
-        ajax.open('POST', cssabove_url, true);
-        ajax.send(formData);
+        window.setTimeout( function() {
+            var sheets = document.styleSheets;
+            var css = criticalCSS(sheets);
+            var formData = new FormData();
+            formData.append("css", css);
+            var ajax = cssfirst_getAjax();
+            ajax.open('POST', cssabove_url, true);
+            ajax.send(formData);
+        }, 2000);
         return false;
     } , false);
 }
