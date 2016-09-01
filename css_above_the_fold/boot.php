@@ -58,7 +58,18 @@ if (!rex::isBackend()) {
             $code = '<style type="text/css">'.
                 file_get_contents($file).
                 '</style>';
-            return str_replace('</head>', $code.'</head>', $ep->getSubject());
+            $content = str_replace('</head>', $code.'</head>', $ep->getSubject());
+            // Verschiebe alle Stylesheets nach dem </html> Tag
+            global $css_sammlung;
+            $css_sammlung = array();
+            $regex = '/<link[^>]*rel="stylesheet"[^>]*href="[^"]+"[^>]*>/smix';
+            $content = preg_replace_callback($regex, function($matches) {
+                global $css_sammlung;
+                $css_sammlung[] = $matches[0];
+                return '';
+            }, $content);
+            $content = str_replace('</html>', '</html>'.implode('',$css_sammlung), $content);
+            return $content;
         }
     });
 }
