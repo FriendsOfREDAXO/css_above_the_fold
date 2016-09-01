@@ -71,7 +71,7 @@ if (!rex::isBackend()) {
             $content = str_replace('</html>', '</html>'.implode('',$css_sammlung), $content);
             return $content;
         }
-    });
+    }, rex_extension::LATE);
 }
 
 

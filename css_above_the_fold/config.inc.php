@@ -96,7 +96,7 @@ if (!$REX['REDAXO'] ) {
 
             return $content;
         }
-    });
+    }, REX_EXTENSION_LATE);
 }
 
 
