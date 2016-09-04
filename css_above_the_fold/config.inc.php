@@ -72,7 +72,10 @@ if (!$REX['REDAXO'] ) {
                 'aid' =>$article_id,
                 'clid' => $clang_id,
             ), '&');
-            $code = '<script type="text/javascript">var cssabove_url = \''.$url.'\';</script>';
+            $code = '<script type="text/javascript">';
+            $code.= 'var cssabove_url = \''.$url.'\';';
+            $code.= 'var css_above_the_fold_device = \''.$device.'\';';
+            $code.= '</script>';
             $code.= '<script type="text/javascript" src="/files/addons/css_above_the_fold/js/front.js"></script>';
             @session_start();
             $_SESSION['cssabove_token'] = $css_first_token;

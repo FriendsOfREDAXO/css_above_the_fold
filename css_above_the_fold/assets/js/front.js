@@ -41,8 +41,8 @@ criticalCSS by @scottjehl. Run this on your CSS, get the styles that are applica
 modified to use all sheets and join by ''
 */
 function criticalCSS( sheets ){
-		var maxTop = window.innerHeight,
-		critical = [];
+    var maxTop = 'mobile' == window.css_above_the_fold_is_mobile ? 768 : 1200;
+    var critical = [];
 
 	function aboveFold( rule ){
 		if( !rule.selectorText ){
