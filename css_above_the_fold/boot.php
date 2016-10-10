@@ -25,7 +25,7 @@ if (!rex::isBackend()) {
                 mkdir($dir, 0777, true);
             }
             if (!file_exists($file)) {
-                file_put_contents($file, $_POST['css']);
+                file_put_contents($file, stripslashes($_POST['css']));
             }
             die();
         } 
