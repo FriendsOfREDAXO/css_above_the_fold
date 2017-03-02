@@ -1,6 +1,6 @@
 #CSS Above The Fold
 
-#Zweck
+##Zweck
 
 Das Addon verkürzt die Ladezeit einer Webseite. CSS-Regeln, die für 
 das Rendern des sichtbaren Seitenbereich benötigt werden 
@@ -10,13 +10,13 @@ das Rendern des sichtbaren Seitenbereich benötigt werden
 Damit lassen sich hohe Wertungen bei Google Insight erreichen. 
 Es hilft bei der Beseitigung von Problem mit "Render-Blocking-Contents"
 
-#Konfiguration
+##Konfiguration
 
 Das Addon besitzt keine Konfigurationsparameter, es fuktioniert vollautoamtisch.
 CSS-Regeln werden im Cache gespeichert. Mit System > [Cache löschen] werden
 die gespeicherten CSS-Regeln verworfen.
 
-#Funktionsbeschreibung
+##Funktionsbeschreibung
 
 CSS-Regeln werden pro Artikel, pro Sprache und pro Device (Mobile, Desktop)
 gespeichert.
