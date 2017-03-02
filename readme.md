@@ -1,4 +1,4 @@
-#Redaxo 5 Addon css_above_the_fold
+#CSS Above The Fold
 
 #Zweck
 
@@ -31,5 +31,4 @@ Sobald die Regeln für eien Kombination (Artikel+Sprache+Gerät) vorhanden sind,
 werden diese direkt im Head-Bereich inline ausgegeben. Alle Stylesheets
 werden automatisch ans Seitenende verschoben, hinter den schliessenden HTML Tag.
 
-Die CSS-Analyse wird 2 Sekunden nach dem Event window.onload gestartet. 
-Nicht alle Browser unterstützen die Funktion (Chrome funktioniert sicher).
+Die CSS-Analyse wird automatisch bei document.ready ausgeführt
