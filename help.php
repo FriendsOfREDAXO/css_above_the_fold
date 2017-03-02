@@ -3,3 +3,4 @@
 <p>Das Addon merkt sich alle CSS-Regeln, die für das schnelle Rendern des sichtbaren Teils benötigt werden.
 Diese Regeln werden dann inline im &lt;head&gt; ausgegeben. Die restlichen Stylesheets können nach dem schliessenden &lt;html&gt;-Tag eingebunden werden.</p>
 <p>Das Addon merkt sich die Regeln pro Artikel (article_id), Sprache (clang_id) und Gerät (mobile, desktop).</p>
+<p>Repository: https://github.com/FriendsOfREDAXO/css_above_the_fold</p>
