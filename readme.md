@@ -1,8 +1,6 @@
 #CSS Above The Fold
 
-##Zweck
-
-Das Addon verkürzt die Ladezeit einer Webseite. CSS-Regeln, die für 
+Das Addon verkürzt die Ladezeit einer Webseite. CSS-Regeln, die für
 das Rendern des sichtbaren Seitenbereich benötigt werden 
 (Above the Fold), werden inline in den Head-Bereich eingebunden. 
 Übrige Stylesheets werden nachträgliche geladen.
