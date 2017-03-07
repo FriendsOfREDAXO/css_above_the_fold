@@ -39,7 +39,7 @@ class CssAboveTheFold
         // Stylesheets asynchron machen
         $regex   = '/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/smix';
         $content = preg_replace_callback($regex, function ($matches) {
-            CssAboveTheFold::$inline .= '<link rel="preload" href="' . $matches[1] . '" as="style" onload="this.rel=\'stylesheet\'">';
+            CssAboveTheFold::$inline .= '<link rel="preload" href="' . $matches[1] . '" as="style" id="caf_link"><script>document.getElementById("caf_link").rel="stylesheet"</script>';
             return '';
         }, $content);
         return str_replace('</body>', self::$inline . '</body>', $content);
