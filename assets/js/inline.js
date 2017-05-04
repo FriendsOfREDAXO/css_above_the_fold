@@ -11,6 +11,9 @@
                     css.href = "%CSS_URL%?bbb=1";
                     css.type = "text/css";
                     $('body').append(css);
+                    $(css).load(function(){
+                        $(document).trigger('css_above_the_fold_loaded');
+                    });
                 })(jQuery);
             }
             else if (counter >= 15) {
