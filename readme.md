@@ -84,28 +84,145 @@ Das generierte Critical CSS wird im Cache-Verzeichnis des AddOns gespeichert. Du
 
 ## "Aufwärmen" des Caches
 
-Um zu vermeiden, dass erste Besucher eine langsamere Seite erleben, kannst du den Cache vorher "aufwärmen". Hier ist ein Beispiel für ein Bash-Skript, das deine Sitemap abarbeitet:
+Um zu vermeiden, dass erste Besucher eine langsamere Seite erleben, kannst du den Cache vorher "aufwärmen". Da das Critical CSS durch JavaScript generiert wird, benötigst du einen Headless-Browser, der die Seiten öffnet und das JavaScript ausführt.
+
+### Mit Puppeteer (Node.js)
+
+Hier ist ein Beispiel mit Puppeteer, das unterschiedliche Viewports simuliert:
+
+```javascript
+// cache-warmer.js
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+
+// URLs zum Aufwärmen - entweder aus Datei oder Array
+const urls = [
+  'https://deine-website.de/',
+  'https://deine-website.de/kontakt',
+  'https://deine-website.de/ueber-uns',
+  // Weitere URLs...
+];
+
+// Zu simulierende Viewports
+const viewports = [
+  { name: 'xs', width: 375, height: 667 },
+  { name: 'md', width: 768, height: 1024 },
+  { name: 'xl', width: 1280, height: 800 },
+];
+
+async function warmCache() {
+  const browser = await puppeteer.launch();
+  
+  console.log('Cache-Warming gestartet...');
+  
+  for (const url of urls) {
+    console.log(`\nVerarbeite URL: ${url}`);
+    
+    for (const viewport of viewports) {
+      console.log(`  - Viewport: ${viewport.name} (${viewport.width}x${viewport.height})`);
+      
+      const page = await browser.newPage();
+      
+      // Viewport setzen
+      await page.setViewport({ 
+        width: viewport.width, 
+        height: viewport.height 
+      });
+      
+      // User-Agent setzen für bessere Kompatibilität
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36');
+      
+      // Seite laden und warten, bis das Netzwerk inaktiv ist
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: 60000 // 60 Sekunden Timeout
+      });
+      
+      // Warten, damit das JavaScript Zeit hat, den CSS-Cache zu generieren
+      console.log('    Warte auf CSS-Extraktion...');
+      await page.waitForTimeout(5000);
+      
+      await page.close();
+    }
+  }
+  
+  await browser.close();
+  console.log('\nCache-Warming abgeschlossen!');
+}
+
+warmCache().catch(err => {
+  console.error('Fehler beim Cache-Warming:', err);
+  process.exit(1);
+});
+```
+
+Installation und Ausführung:
 
 ```bash
-#!/bin/bash
-# CSS Above The Fold Cache Warmer
+# Puppeteer installieren
+npm install puppeteer
 
-# Sitemap URL
-SITEMAP_URL="https://deine-website.de/sitemap.xml"
-
-# URLs aus der Sitemap extrahieren
-URLS=$(curl -s $SITEMAP_URL | grep -oP '(?<=<loc>).*(?=</loc>)')
-
-# Jeden URL aufrufen
-for URL in $URLS; do
-    echo "Warming cache for: $URL"
-    curl -s -A "Mozilla/5.0 (X11; Linux x86_64)" $URL > /dev/null
-    # Kurze Pause, um den Server nicht zu überlasten
-    sleep 2
-done
-
-echo "Cache warming complete."
+# Script ausführen
+node cache-warmer.js
 ```
+
+### Mit Sitemap (Node.js mit Puppeteer)
+
+Wenn du eine Sitemap hast, kannst du die URLs daraus extrahieren:
+
+```javascript
+const puppeteer = require('puppeteer');
+const axios = require('axios');
+const xml2js = require('xml2js');
+
+// Sitemap URL
+const SITEMAP_URL = 'https://deine-website.de/sitemap.xml';
+
+// Viewports
+const viewports = [
+  { name: 'xs', width: 375, height: 667 },
+  { name: 'xl', width: 1280, height: 800 },
+];
+
+async function getSitemapUrls() {
+  const response = await axios.get(SITEMAP_URL);
+  const parser = new xml2js.Parser();
+  const result = await parser.parseStringPromise(response.data);
+  
+  // URLs aus der Sitemap extrahieren
+  return result.urlset.url.map(urlObj => urlObj.loc[0]);
+}
+
+async function warmCache() {
+  const urls = await getSitemapUrls();
+  const browser = await puppeteer.launch();
+  
+  console.log(`Gefundene URLs: ${urls.length}`);
+  
+  for (const url of urls) {
+    for (const viewport of viewports) {
+      console.log(`Verarbeite ${url} mit Viewport ${viewport.name}`);
+      
+      const page = await browser.newPage();
+      await page.setViewport({ width: viewport.width, height: viewport.height });
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      await page.waitForTimeout(5000);
+      await page.close();
+    }
+  }
+  
+  await browser.close();
+  console.log('Cache-Warming abgeschlossen!');
+}
+
+warmCache();
+```
+
+### Im Backend ausführen
+
+Du könntest auch eine Funktion in das REDAXO-Backend integrieren, die einen solchen Prozess startet. Dies würde eine zusätzliche Implementierung erfordern, bei der ein PHP-Script Puppeteer oder einen ähnlichen Headless-Browser steuert.
+
+**Hinweis:** Einfache curl-Anfragen reichen nicht aus, da sie JavaScript nicht ausführen können und somit das Critical CSS nicht generiert wird.
 
 ## Wie es technisch funktioniert
 
