@@ -1,0 +1,258 @@
+name: CSS Above The Fold Cache Warmer
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Täglich um 3 Uhr morgens
+  workflow_dispatch:      # Manuelle Auslösung ermöglichen
+    inputs:
+      viewport_sizes:
+        description: 'Zu verwendende Viewport-Größen (z.B. xs,md,xl)'
+        required: false
+        default: 'xs,md,xl'
+
+jobs:
+  warm-cache:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          npm install puppeteer
+          npm install axios
+          npm install xml2js
+        
+      - name: Create cache-warmer.js script
+        run: |
+          cat > cache-warmer.js << 'EOF'
+          const puppeteer = require('puppeteer');
+          const axios = require('axios');
+          const xml2js = require('xml2js');
+          const fs = require('fs');
+
+          // Konfiguration aus Umgebungsvariablen
+          const SITEMAP_URL = process.env.SITEMAP_URL || 'https://example.com/sitemap.xml';
+          const VIEWPORT_SIZES = (process.env.VIEWPORT_SIZES || 'xs,md,xl').split(',');
+          const WAIT_TIME = parseInt(process.env.WAIT_TIME || '5000'); // 5 Sekunden Standard-Wartezeit
+          const USER_AGENT = process.env.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/100.0.4896.127 Safari/537.36';
+          const MAX_URLS = parseInt(process.env.MAX_URLS || '0'); // 0 = alle URLs
+
+          // Viewport-Größen definieren
+          const viewportSizes = {
+            xs: { width: 375, height: 667 },
+            sm: { width: 640, height: 900 },
+            md: { width: 768, height: 1024 },
+            lg: { width: 1024, height: 768 },
+            xl: { width: 1280, height: 800 },
+            xxl: { width: 1536, height: 900 }
+          };
+
+          // Ergebnisse
+          const results = {
+            startTime: new Date().toISOString(),
+            endTime: null,
+            viewports: VIEWPORT_SIZES,
+            processedUrls: [],
+            errors: []
+          };
+
+          // URLs aus Sitemap holen
+          async function getSitemapUrls() {
+            try {
+              console.log(`Lade Sitemap von ${SITEMAP_URL}...`);
+              const response = await axios.get(SITEMAP_URL);
+              const parser = new xml2js.Parser();
+              const result = await parser.parseStringPromise(response.data);
+              
+              if (result.urlset && result.urlset.url) {
+                let urls = result.urlset.url.map(urlObj => urlObj.loc[0]);
+                
+                if (MAX_URLS > 0 && urls.length > MAX_URLS) {
+                  console.log(`Limitiere auf ${MAX_URLS} URLs (von ${urls.length})`);
+                  urls = urls.slice(0, MAX_URLS);
+                }
+                
+                return urls;
+              } else if (result.sitemapindex && result.sitemapindex.sitemap) {
+                // Fall: Sitemap-Index mit mehreren Sitemaps
+                console.log('Sitemap-Index gefunden. Verarbeite alle enthaltenen Sitemaps...');
+                const sitemapUrls = result.sitemapindex.sitemap.map(sitemap => sitemap.loc[0]);
+                
+                let allUrls = [];
+                for (const sitemapUrl of sitemapUrls) {
+                  console.log(`Verarbeite Sitemap: ${sitemapUrl}`);
+                  try {
+                    const sitemapResponse = await axios.get(sitemapUrl);
+                    const sitemapResult = await parser.parseStringPromise(sitemapResponse.data);
+                    
+                    if (sitemapResult.urlset && sitemapResult.urlset.url) {
+                      const urls = sitemapResult.urlset.url.map(urlObj => urlObj.loc[0]);
+                      allUrls = allUrls.concat(urls);
+                    }
+                  } catch (err) {
+                    console.error(`Fehler beim Laden der Sitemap ${sitemapUrl}:`, err.message);
+                    results.errors.push(`Fehler beim Laden der Sitemap ${sitemapUrl}: ${err.message}`);
+                  }
+                }
+                
+                if (MAX_URLS > 0 && allUrls.length > MAX_URLS) {
+                  console.log(`Limitiere auf ${MAX_URLS} URLs (von ${allUrls.length})`);
+                  allUrls = allUrls.slice(0, MAX_URLS);
+                }
+                
+                return allUrls;
+              }
+              
+              console.error('Keine URLs in der Sitemap gefunden oder unbekanntes Format.');
+              return [];
+            } catch (error) {
+              console.error('Fehler beim Parsen der Sitemap:', error.message);
+              results.errors.push(`Fehler beim Parsen der Sitemap: ${error.message}`);
+              return [];
+            }
+          }
+
+          // Cache aufwärmen
+          async function warmCache() {
+            const urls = await getSitemapUrls();
+            console.log(`Gefundene URLs: ${urls.length}`);
+            
+            if (urls.length === 0) {
+              console.log('Keine URLs gefunden. Beende Prozess.');
+              return;
+            }
+
+            const browser = await puppeteer.launch({
+              headless: 'new',
+              args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+            
+            console.log(`Starte Cache-Warming für ${VIEWPORT_SIZES.length} Viewport-Größen: ${VIEWPORT_SIZES.join(', ')}`);
+            
+            for (const url of urls) {
+              console.log(`\nVerarbeite URL: ${url}`);
+              results.processedUrls.push({ url, viewports: {}, status: 'started' });
+              const urlIndex = results.processedUrls.length - 1;
+              
+              for (const viewportKey of VIEWPORT_SIZES) {
+                if (!viewportSizes[viewportKey]) {
+                  console.warn(`Unbekannte Viewport-Größe: ${viewportKey}, überspringe.`);
+                  continue;
+                }
+                
+                const viewport = viewportSizes[viewportKey];
+                console.log(`- Viewport: ${viewportKey} (${viewport.width}x${viewport.height})`);
+                
+                const page = await browser.newPage();
+                
+                // Browser-Cache und -Cookies für diese Seite löschen
+                const client = await page.target().createCDPSession();
+                await client.send('Network.clearBrowserCookies');
+                await client.send('Network.clearBrowserCache');
+                
+                await page.setViewport(viewport);
+                await page.setUserAgent(USER_AGENT);
+                
+                // Request-Header setzen, um 304-Antworten zu vermeiden
+                await page.setExtraHTTPHeaders({
+                  'Pragma': 'no-cache',
+                  'Cache-Control': 'no-cache, no-store, must-revalidate'
+                });
+                
+                try {
+                  // Cache-Busting durch Hinzufügen eines Zeitstempels zur URL
+                  const cacheBusterUrl = new URL(url);
+                  cacheBusterUrl.searchParams.append('_cb', Date.now());
+                  
+                  // Seite laden und auf Netzwerkberuhigung warten
+                  const response = await page.goto(cacheBusterUrl.toString(), { 
+                    waitUntil: 'networkidle2',
+                    timeout: 60000 // 60 Sekunden Timeout
+                  });
+                  
+                  const status = response.status();
+                  console.log(`  Status: ${status}`);
+                  
+                  // 304-Status als Erfolg behandeln, aber mit Warnung
+                  if (status === 304) {
+                    console.log('  ⚠️ 304 Not Modified erhalten. Cache-Busting könnte nicht funktionieren.');
+                  }
+                  
+                  // Auf CSS-Extraktion warten
+                  console.log(`  Warte ${WAIT_TIME/1000} Sekunden auf CSS-Extraktion...`);
+                  await page.waitForTimeout(WAIT_TIME);
+                  
+                  // Ergebnis speichern
+                  results.processedUrls[urlIndex].viewports[viewportKey] = {
+                    status: status,
+                    success: status >= 200 && status < 400
+                  };
+                  
+                } catch (error) {
+                  console.error(`  Fehler: ${error.message}`);
+                  results.processedUrls[urlIndex].viewports[viewportKey] = {
+                    status: 'error',
+                    error: error.message,
+                    success: false
+                  };
+                  results.errors.push(`Fehler bei URL ${url} (Viewport ${viewportKey}): ${error.message}`);
+                }
+                
+                await page.close();
+              }
+              
+              results.processedUrls[urlIndex].status = 'completed';
+            }
+            
+            await browser.close();
+            results.endTime = new Date().toISOString();
+            
+            // Ergebnisse in Datei speichern
+            fs.writeFileSync('cache-warmer-results.json', JSON.stringify(results, null, 2));
+            
+            console.log('\nCache-Warming abgeschlossen!');
+            console.log(`- Start: ${results.startTime}`);
+            console.log(`- Ende: ${results.endTime}`);
+            console.log(`- Verarbeitete URLs: ${results.processedUrls.length}`);
+            console.log(`- Fehler: ${results.errors.length}`);
+          }
+
+          // Ausführen
+          warmCache()
+            .catch(err => {
+              console.error('Unerwarteter Fehler:', err);
+              process.exit(1);
+            });
+          EOF
+      
+      - name: Run cache warmer
+        run: node cache-warmer.js
+        env:
+          SITEMAP_URL: ${{ secrets.SITEMAP_URL }}
+          VIEWPORT_SIZES: ${{ inputs.viewport_sizes || 'xs,md,xl' }}
+          WAIT_TIME: ${{ secrets.WAIT_TIME || '5000' }}
+          USER_AGENT: "CSS Above The Fold Cache Warmer/2.0 (GitHub Actions)"
+          MAX_URLS: ${{ secrets.MAX_URLS || '0' }}  # 0 = alle URLs
+          
+      - name: Log results
+        run: |
+          echo "Cache-Warming abgeschlossen: $(date)"
+          if [ -f ./cache-warmer-results.json ]; then
+            echo "URLs verarbeitet: $(jq '.processedUrls | length' ./cache-warmer-results.json)"
+            echo "Fehler: $(jq '.errors | length' ./cache-warmer-results.json)"
+          else
+            echo "Keine Ergebnisdatei gefunden."
+          fi
+          
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-warmer-results
+          path: ./cache-warmer-results.json
+          if-no-files-found: warn
