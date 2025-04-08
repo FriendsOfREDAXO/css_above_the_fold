@@ -10,6 +10,7 @@ requires:
 default_config:
     active: true
     load_css_async: true
+    debug: false
     breakpoints:
         xs: 375
         sm: 640
@@ -17,6 +18,8 @@ default_config:
         lg: 1024
         xl: 1280
         xxl: 1536
+    always_include_selectors: ''
+    never_include_selectors: ''
 
 page:
     title: 'CSS Above The Fold'
