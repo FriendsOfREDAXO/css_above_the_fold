@@ -1,13 +1,11 @@
 <?php
 
-namespace FriendsOfRedaxo\CssAboveTheFold;
-
 /**
  * CSS Above The Fold API
  * 
  * Verarbeitet die API-Anfragen für das AddOn
  */
-class Api extends \rex_api_function
+class rex_api_css_above_the_fold extends \rex_api_function
 {
     /** @var bool API im Frontend verfügbar machen */
     protected $published = true;
@@ -125,7 +123,7 @@ class Api extends \rex_api_function
              throw new \rex_api_exception('CSS-Inhalt scheint ungültig zu sein.');
         }
         
-        $file = CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
+        $file = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
         
         if (false === \rex_file::put($file, $css)) {
              $this->success = false;
@@ -171,14 +169,14 @@ class Api extends \rex_api_function
             throw new \rex_api_exception('Fehlende erforderliche Parameter für das Löschen.');
         }
         
-        $file = CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
+        $file = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
         
         if (!file_exists($file)) {
             $this->success = false;
             throw new \rex_api_exception('CSS-Datei existiert nicht.');
         }
         
-        if (!CssAboveTheFold::deleteCacheFile(basename($file))) {
+        if (!\FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::deleteCacheFile(basename($file))) {
             $this->success = false;
             $this->logError(E_WARNING, "CSS Above The Fold API: Fehler beim Löschen der CSS-Datei: {$file}");
             throw new \rex_api_exception('Fehler beim Löschen der CSS-Datei.');
@@ -213,7 +211,7 @@ class Api extends \rex_api_function
         // Benutzten Token entfernen
         $addon->removeConfig($tokenKey);
         
-        $count = CssAboveTheFold::deleteAllCacheFiles();
+        $count = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::deleteAllCacheFiles();
         
         // Erfolgreiche Antwort befüllen
         $this->success = true;
