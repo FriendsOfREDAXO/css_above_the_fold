@@ -1,192 +1,110 @@
 # CSS Above The Fold für REDAXO
 
-Dieses AddOn verkürzt die Ladezeit einer Website, indem es CSS-Regeln, die für das Rendern des sichtbaren Seitenbereichs benötigt werden (Above the Fold), inline in den `<head>`-Bereich einbindet. Übrige Stylesheets werden nachträglich asynchron geladen.
+Hey REDAXO-Entwickler! Mit diesem AddOn werden Websites blitzschnell geladen - es identifiziert CSS für den sichtbaren Bereich einer Seite (also "above the fold"), packt es direkt in den `<head>` und lädt den Rest asynchron nach. Resultat? Bessere PageSpeed-Werte, schnellere Ladezeiten und glücklichere Nutzer!
 
-Damit lassen sich hohe Wertungen bei Google PageSpeed Insights und Lighthouse erreichen. Es hilft bei der Beseitigung von Problemen mit Render-Blocking-Contents.
+## 2.0
 
-## Features
+Die neue Version ist eine komplette Neuentwicklung mit modernem PHP und JavaScript. Ein paar Highlights:
 
-- Viewport-basierte Generierung von Critical CSS (xs, sm, md, lg, xl, xxl)
-- Automatische Erkennung und Extraktion des kritischen CSS
-- Asynchrones Laden von CSS-Dateien nach dem Rendern der Seite
-- Intelligente Cache-Funktion für bessere Performance
-- Unterstützung für moderne CSS-Features (CSS-Variablen, Media Queries, @supports, etc.)
-- Konfigurierbare "Immer einschließen" und "Nie einschließen" Selektoren
+- **Smarter Viewport-Ansatz**: Statt der simplen mobile/desktop-Unterteilung gibt's jetzt anpassbare Breakpoints (xs, sm, md, lg, xl, xxl)
+- **Unterstützung moderner CSS-Features**: CSS-Variablen, verschachtelte Media Queries, komplexe Selektoren - alles kein Problem mehr!
+- **Richtig gute Performance**: Effizientere Algorithmen zur CSS-Extraktion und cleveres Caching
+- **Feintuning möglich**: Selektoren können jetzt explizit ein- oder ausgeschlossen werden
+- **DevOps-freundlich**: Mit dem mitgelieferten GitHub-Actions-Workflow kann der Cache automatisch warm gehalten werden
 
-## Anforderungen
+## Technische Details für Entwickler
 
-- REDAXO 5.18.1 oder höher
-- PHP 8.1 oder höher
+Unter der Haube passiert Folgendes:
 
-## Installation
+1. **CSS-Erkennung beim ersten Besuch**:
+   - JavaScript identifiziert alle im Viewport sichtbaren Elemente
+   - Die relevanten CSS-Regeln werden aus allen Stylesheets extrahiert
+   - Es werden nur die Media Queries berücksichtigt, die zum aktuellen Viewport passen
+   - Das Ergebnis wird per AJAX an den Server geschickt und gecacht
 
-1. Im REDAXO-Installer das AddOn "CSS Above The Fold" auswählen und installieren
-2. AddOn aktivieren
-3. Grundeinstellungen vornehmen (unter AddOns > CSS Above The Fold > Einstellungen)
+2. **Bei folgenden Besuchen**:
+   - Critical CSS wird direkt inline in den `<head>` eingebunden
+   - Die regulären Stylesheets werden mit `<link rel="preload" ... onload="this.rel='stylesheet'">` asynchron geladen
+   - Es gibt keinen FOUC (Flash of Unstyled Content) mehr!
 
-## Verwendung
+3. **Viewport-Detection**:
+   - Server-seitig via User-Agent (grundlegende Erkennung)
+   - Client-seitig präzise via JavaScript
 
-Das AddOn funktioniert vollautomatisch. Nach der Aktivierung wird für jede Kombination aus Artikel, Sprache und Viewport das Critical CSS beim ersten Aufruf generiert und im Cache gespeichert. Bei nachfolgenden Aufrufen wird das gespeicherte Critical CSS verwendet.
+## Installation in 30 Sekunden
 
-### Automatischer Modus
+1. Im Installer "CSS Above The Fold" installieren
+2. Aktivieren
+3. Profit! 🚀
 
-Die Standardverwendung ist vollautomatisch. CSS-Dateien, die im `<head>`-Bereich eingebunden sind, werden automatisch erkannt und optimiert:
+## API für Entwickler
 
-1. Beim ersten Besuch einer Seite wird JavaScript eingebunden, das die sichtbaren Elemente ermittelt
-2. Das CSS für diese Elemente wird extrahiert und per AJAX an den Server gesendet
-3. Bei nachfolgenden Besuchen wird das gespeicherte CSS direkt in den `<head>` eingebunden
-4. Die ursprünglichen CSS-Dateien werden asynchron geladen, um das Rendering nicht zu blockieren
-
-### Manueller Modus
-
-Falls du CSS-Dateien manuell asynchron laden möchtest, kannst du folgende Methode verwenden:
+Für spezielle Anwendungsfälle gibt's diese nützlichen Methoden:
 
 ```php
-<?php
-// Manuelles asynchrones Laden einer CSS-Datei
 use FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold;
-echo CssAboveTheFold::loadCssAsync('/assets/css/style.css');
-?>
+
+// Manuelles asynchrones Laden einer CSS-Datei
+echo CssAboveTheFold::loadCssAsync('/assets/css/special.css');
+
+// CSS-Cache-Datei für einen bestimmten Viewport abrufen
+$cachePath = CssAboveTheFold::getCacheFile('md', $articleId, $clangId);
+
+// Cache für einen Artikel leeren
+CssAboveTheFold::deleteCacheFile('xl_1_1.css');
+
+// Gesamten Cache leeren
+$deletedFiles = CssAboveTheFold::deleteAllCacheFiles();
 ```
 
-## Konfiguration
+## Optimierungstricks
 
-### Allgemeine Einstellungen
+- **CSS-Variablen im Critical CSS**: Packt wichtige CSS-Variablen in die "Immer einschließen"-Liste
+- **Framework-Komponenten**: Bootstrap/Tailwind/etc. Grid-System und Typografie sollten immer eingeschlossen werden
+- **Animations-CSS ausschließen**: Keyframes und Animationen aufräumen? Ab in die "Nie einschließen"-Liste
+- **Viewport-Analyse**: Im Cache nachschauen, welche Viewports am häufigsten sind und darauf optimieren
 
-- **AddOn aktivieren**: Aktiviert oder deaktiviert die Funktionalität des AddOns
-- **CSS asynchron laden**: Lädt die ursprünglichen CSS-Dateien asynchron nach dem Rendern der Seite
-- **Debug-Modus**: Aktiviert ausführliche Logging-Informationen für die Fehlersuche
+## Für Performance-Nerds: Cache-Warming
 
-### Viewport-Breakpoints
+Damit das Critical CSS schon vor dem ersten Besucher bereitsteht, nutzt diesen GitHub-Actions-Workflow:
 
-Das AddOn verwendet standardmäßig folgende Viewport-Breakpoints:
+```yaml
+# Workflow-Datei aus .github/workflows-template kopieren
+# Secrets einrichten:
+# - SITEMAP_URL: https://example.com/sitemap.xml
+# - WAIT_TIME: 5000
+# - MAX_URLS: 0 (alle URLs)
+```
 
-- **xs**: Extra Small (Mobile) - 375px
-- **sm**: Small (Kleines Tablet) - 640px
-- **md**: Medium (Tablet) - 768px
-- **lg**: Large (Kleiner Desktop) - 1024px
-- **xl**: Extra Large (Desktop) - 1280px
-- **xxl**: Extra Extra Large (Großer Desktop) - 1536px
+Der Workflow krabbelt durch die Sitemap, öffnet jede Seite mit verschiedenen Viewport-Größen und lässt das JavaScript den CSS-Cache generieren. Mega praktisch nach Deployments!
 
-Diese Werte können in den Einstellungen angepasst werden.
+## Warum die alte Version in die Tonne treten?
 
-### Selektor-Einstellungen
+Die alte Version hatte ein paar Schwachstellen:
+- Probleme mit komplexeren CSS-Strukturen
+- Keine Unterstützung für moderne CSS-Features
+- Primitive mobile/desktop-Unterscheidung
+- Keine Möglichkeit, den Cache automatisiert zu füllen
+- Manchmal verpasste sie wichtige CSS-Regeln
 
-- **Immer einschließen**: CSS-Selektoren, die immer im Critical CSS enthalten sein sollen (einer pro Zeile)
-- **Nie einschließen**: CSS-Selektoren, die nie im Critical CSS enthalten sein sollen (einer pro Zeile)
+Version 2.0 löst all diese Probleme und bringt die Technik auf den neuesten Stand!
 
-## Cache-Verwaltung
+## Fehlerbehebung für fortgeschrittene Nutzer
 
-Das generierte Critical CSS wird im Cache-Verzeichnis des AddOns gespeichert. Du kannst den Cache über die Einstellungsseite verwalten:
+- **Seltsame Darstellungsfehler?** Debug-Modus aktivieren und die REDAXO-Logs checken
+- **JS-Fehler?** Die Browser-Konsole verrät mehr
+- **Bestimmte Stile fehlen?** Liste der CSS-Selektoren überprüfen und ggf. zur "Immer einschließen"-Liste hinzufügen
+- **Cache wird nicht erstellt?** Möglicherweise CORS-Probleme oder JS-Fehler - Debug-Modus hilft!
+- **304 Responses beim Cache-Warming?** Kein Problem, der Workflow hat Cache-Busting eingebaut
 
-- Einzelne Cache-Dateien löschen
-- Gesamten Cache löschen (alle Dateien werden dann neu generiert)
+## Mitmachen
 
-## "Aufwärmen" des Caches
+PRs sind herzlich willkommen! Besonders für:
+- Unterstützung weiterer CSS-Features
+- Verbesserungen der Extraktion-Algorithmen
+- Backend-UI-Verbesserungen
+- Weitere Cache-Warming-Methoden
 
-Um zu vermeiden, dass erste Besucher eine langsamere Seite erleben, kannst du den Cache vorher "aufwärmen". Da das Critical CSS durch JavaScript generiert wird, ist dies mit normalen HTTP-Anfragen nicht möglich - ein Browser-Engine muss das JavaScript ausführen.
+## Danke an alle Beteiligten!
 
-### Automatisierung mit GitHub Actions
-
-Das AddOn beinhaltet ein GitHub Actions Workflow-Template, das automatisch alle Seiten mit verschiedenen Viewport-Größen besucht und den Cache generiert:
-
-1. **Kopiere die Workflow-Datei**: Du findest die Vorlage unter `.github/workflows-template/css-above-the-fold-cache-warmer.yml` im AddOn. Kopiere diese in das `.github/workflows`-Verzeichnis deines Projekts.
-
-2. **Konfiguriere die Secrets in deinem GitHub-Repository**:
-   - `SITEMAP_URL` (erforderlich): Die URL zur Sitemap deiner Website
-   - `WAIT_TIME` (optional): Zeit in Millisekunden zum Warten auf die CSS-Extraktion (Standard: 5000)
-   - `MAX_URLS` (optional): Maximale Anzahl der zu verarbeitenden URLs (0 = alle)
-
-3. **Passe den Zeitplan an** (optional): Standardmäßig läuft der Workflow täglich um 3 Uhr morgens, kann aber im Workflow angepasst werden.
-
-Der Workflow verwendet Puppeteer (Headless Chrome), um:
-- URLs aus deiner Sitemap zu laden
-- Jede URL mit verschiedenen Viewport-Größen zu öffnen (konfigurierbar)
-- Das JavaScript zur CSS-Extraktion auszuführen
-- Den generierten Cache für zukünftige Besuche zu speichern
-
-Du kannst den Workflow auch manuell über die GitHub Actions-Oberfläche starten und die zu verwendenden Viewport-Größen auswählen.
-
-#### Vorteile dieser Lösung:
-- Vollständig automatisiert nach Deployments oder Zeitplan
-- Unterstützt alle Viewport-Größen
-- Detaillierte Ergebnisberichte
-- Keine zusätzliche Server-Last im Produktivbetrieb
-
-## Wie es technisch funktioniert
-
-1. **Erkennung**: Bei einem neuen Besuch identifiziert das AddOn den Viewport basierend auf dem User-Agent
-2. **Critical CSS Extraktion**:
-   - Ein JavaScript-Skript ermittelt alle im Viewport sichtbaren Elemente
-   - Für jedes Element werden die zugehörigen CSS-Regeln aus allen Stylesheets extrahiert
-   - Medienabfragen, die dem aktuellen Viewport entsprechen, werden ebenfalls berücksichtigt
-3. **Datenübertragung**: Das extrahierte CSS wird per AJAX an den Server gesendet und in einer Datei gespeichert
-4. **Auslieferung**: Bei nachfolgenden Besuchen wird das gespeicherte CSS inline in den `<head>` eingefügt
-5. **Asynchrones Laden**: Die ursprünglichen CSS-Dateien werden asynchron geladen, um das Rendering nicht zu blockieren
-
-## Tipps für die Optimierung
-
-- Definiere wichtige globale Stile in "Immer einschließen", z.B. `.container`, Typografie-Klassen, etc.
-- Platziere selten sichtbare oder unwichtige Stile in "Nie einschließen"
-- Prüfe den Cache regelmäßig, um ungewöhnlich große CSS-Dateien zu identifizieren
-- Leere den Cache nach größeren Design-Änderungen komplett
-
-## Bekannte Einschränkungen
-
-- Das AddOn kann keine externen CSS-Dateien von anderen Domains verarbeiten (CORS-Beschränkungen)
-- Die serverseitige Viewport-Erkennung ist eine Schätzung und kann nicht so präzise sein wie die clientseitige Erkennung
-- Animationen und Keyframes werden derzeit nicht im Critical CSS berücksichtigt
-
-## Lizenz
-
-MIT License
-
-## Credits
-
-Dieses AddOn ist eine vollständige Neuentwicklung des ursprünglichen CSS Above The Fold AddOns von Friends Of REDAXO. Die neue Version nutzt moderne PHP- und JavaScript-Techniken sowie einen verbesserten viewport-basierten Ansatz.
-
-## Hinweise zur Performance
-
-Das CSS Above The Fold AddOn bringt deutliche Performance-Verbesserungen für deine Website:
-
-1. **Erste bedeutende Inhalte (FCP)**: Durch das Inline-Laden des kritischen CSS wird der First Contentful Paint deutlich beschleunigt.
-2. **Zeit bis zur Interaktivität (TTI)**: Da CSS das Rendering nicht mehr blockiert, ist die Seite schneller interaktiv.
-3. **PageSpeed Insights**: Die Punktzahl in Google PageSpeed Insights und Core Web Vitals verbessert sich erheblich.
-
-## Fehlerbehebung
-
-### Das Critical CSS wird nicht erstellt
-- Prüfe, ob JavaScript im Browser aktiviert ist
-- Prüfe, ob die Seite keine JavaScript-Fehler enthält, die die Ausführung blockieren
-- Aktiviere den Debug-Modus und prüfe die REDAXO-Logs auf Fehler
-
-### Bestimmte Stile fehlen im Critical CSS
-- Füge die fehlenden Selektoren zur "Immer einschließen"-Liste hinzu
-- Prüfe, ob die Elemente wirklich im sichtbaren Bereich sind
-- Bei komplexen Selektoren können manchmal Teile übersehen werden
-
-### Nach Aktualisierung des CSS erscheint noch immer das alte Design
-- Lösche den Cache für die betroffenen Seiten
-- Führe ein vollständiges Leeren des Caches durch
-- Prüfe, ob Browsercache oder CDN alte Versionen zwischenspeichern
-
-## Support
-
-Bei Fragen oder Problemen stehen folgende Ressourcen zur Verfügung:
-
-- [GitHub-Issues](https://github.com/FriendsOfREDAXO/css_above_the_fold/issues)
-- [REDAXO-Forum](https://friendsofredaxo.github.io/community/)
-
-## Mitwirken
-
-Beiträge zum AddOn sind herzlich willkommen! Wenn du Verbesserungen oder Fehlerbehebungen beitragen möchtest:
-
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
-
-## Danksagung
-
-Vielen Dank an alle Mitwirkenden und Tester, die zur Entwicklung dieses AddOns beigetragen haben.
+Dieses AddOn ist ein Community-Projekt. Vielen Dank an alle, die dazu beigetragen haben!
