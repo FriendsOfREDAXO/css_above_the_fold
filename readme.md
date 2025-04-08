@@ -2,9 +2,7 @@
 
 Moin! Mit diesem AddOn werden Websites blitzschnell geladen - es identifiziert CSS für den sichtbaren Bereich einer Seite (also "above the fold"), packt es direkt in den `<head>` und lädt den Rest asynchron nach. Resultat? Bessere PageSpeed-Werte, schnellere Ladezeiten und glücklichere Nutzer!
 
-## Die Story hinter Version 2.0
-
-Die neue Version ist eine komplette Neuentwicklung mit modernem PHP und JavaScript. Ein paar Highlights:
+## Features 
 
 - **Smarter Viewport-Ansatz**: Statt der simplen mobile/desktop-Unterteilung gibt's jetzt anpassbare Breakpoints (xs, sm, md, lg, xl, xxl)
 - **Unterstützung moderner CSS-Features**: CSS-Variablen, verschachtelte Media Queries, komplexe Selektoren - alles kein Problem mehr!
@@ -64,7 +62,7 @@ $deletedFiles = CssAboveTheFold::deleteAllCacheFiles();
 - **Animations-CSS ausschließen**: Keyframes und Animationen aufräumen? Ab in die "Nie einschließen"-Liste
 - **Viewport-Analyse**: Im Cache nachschauen, welche Viewports am häufigsten sind und darauf optimieren
 
-## Für Performance-Nerds: Cache-Warming
+## Für Performance-Nerds: Cache-Warming (Beta, aktuell nur Desktop)
 
 Damit das Critical CSS schon vor dem ersten Besucher bereitsteht, nutzt diesen GitHub-Actions-Workflow:
 
