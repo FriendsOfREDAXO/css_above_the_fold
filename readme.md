@@ -1,8 +1,8 @@
 # CSS Above The Fold für REDAXO
 
-Hey REDAXO-Entwickler! Mit diesem AddOn werden Websites blitzschnell geladen - es identifiziert CSS für den sichtbaren Bereich einer Seite (also "above the fold"), packt es direkt in den `<head>` und lädt den Rest asynchron nach. Resultat? Bessere PageSpeed-Werte, schnellere Ladezeiten und glücklichere Nutzer!
+Moin! Mit diesem AddOn werden Websites blitzschnell geladen - es identifiziert CSS für den sichtbaren Bereich einer Seite (also "above the fold"), packt es direkt in den `<head>` und lädt den Rest asynchron nach. Resultat? Bessere PageSpeed-Werte, schnellere Ladezeiten und glücklichere Nutzer!
 
-## 2.0
+## Die Story hinter Version 2.0
 
 Die neue Version ist eine komplette Neuentwicklung mit modernem PHP und JavaScript. Ein paar Highlights:
 
@@ -108,3 +108,14 @@ PRs sind herzlich willkommen! Besonders für:
 ## Danke an alle Beteiligten!
 
 Dieses AddOn ist ein Community-Projekt. Vielen Dank an alle, die dazu beigetragen haben!
+
+## Autor
+
+**Friends Of REDAXO**
+
+* http://www.redaxo.org
+* https://github.com/FriendsOfREDAXO
+
+**Projektleitung**
+
+[Thomas Skerbis](https://github.com/skerbis)
