@@ -137,4 +137,50 @@ MIT License
 
 ## Credits
 
-Dieses AddOn ist eine vollständige Neuentwicklung des ursprünglichen CSS Above
+Dieses AddOn ist eine vollständige Neuentwicklung des ursprünglichen CSS Above The Fold AddOns von Friends Of REDAXO. Die neue Version nutzt moderne PHP- und JavaScript-Techniken sowie einen verbesserten viewport-basierten Ansatz.
+
+## Hinweise zur Performance
+
+Das CSS Above The Fold AddOn bringt deutliche Performance-Verbesserungen für deine Website:
+
+1. **Erste bedeutende Inhalte (FCP)**: Durch das Inline-Laden des kritischen CSS wird der First Contentful Paint deutlich beschleunigt.
+2. **Zeit bis zur Interaktivität (TTI)**: Da CSS das Rendering nicht mehr blockiert, ist die Seite schneller interaktiv.
+3. **PageSpeed Insights**: Die Punktzahl in Google PageSpeed Insights und Core Web Vitals verbessert sich erheblich.
+
+## Fehlerbehebung
+
+### Das Critical CSS wird nicht erstellt
+- Prüfe, ob JavaScript im Browser aktiviert ist
+- Prüfe, ob die Seite keine JavaScript-Fehler enthält, die die Ausführung blockieren
+- Aktiviere den Debug-Modus und prüfe die REDAXO-Logs auf Fehler
+
+### Bestimmte Stile fehlen im Critical CSS
+- Füge die fehlenden Selektoren zur "Immer einschließen"-Liste hinzu
+- Prüfe, ob die Elemente wirklich im sichtbaren Bereich sind
+- Bei komplexen Selektoren können manchmal Teile übersehen werden
+
+### Nach Aktualisierung des CSS erscheint noch immer das alte Design
+- Lösche den Cache für die betroffenen Seiten
+- Führe ein vollständiges Leeren des Caches durch
+- Prüfe, ob Browsercache oder CDN alte Versionen zwischenspeichern
+
+## Support
+
+Bei Fragen oder Problemen stehen folgende Ressourcen zur Verfügung:
+
+- [GitHub-Issues](https://github.com/FriendsOfREDAXO/css_above_the_fold/issues)
+- [REDAXO-Forum](https://friendsofredaxo.github.io/community/)
+
+## Mitwirken
+
+Beiträge zum AddOn sind herzlich willkommen! Wenn du Verbesserungen oder Fehlerbehebungen beitragen möchtest:
+
+1. Fork das Repository
+2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
+4. Push zum Branch (`git push origin feature/AmazingFeature`)
+5. Öffne einen Pull Request
+
+## Danksagung
+
+Vielen Dank an alle Mitwirkenden und Tester, die zur Entwicklung dieses AddOns beigetragen haben.
