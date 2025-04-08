@@ -13,6 +13,9 @@ if (!defined('CSS_ABOVE_THE_FOLD_DEBUG')) {
 
 // Namespaces importieren
 use FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold;
+use rex;
+use rex_extension;
+use rex_extension_point;
 
 // Output Filter nur im Frontend und nicht im Debug-Modus registrieren
 if (rex::isFrontend() && !rex::isDebugMode()) {
@@ -24,4 +27,9 @@ if (rex::isFrontend() && !rex::isDebugMode()) {
         
         return CssAboveTheFold::outputFilter($ep);
     }, rex_extension::LATE);
+}
+
+// Im Backend Assets registrieren
+if (rex::isBackend() && rex::getUser()) {
+    // Hier könnten bei Bedarf Backend-Assets registriert werden
 }
