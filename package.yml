@@ -1,7 +1,29 @@
 package: css_above_the_fold
-version: '1.0.0'
+version: '2.0.0-alpha1'
 author: 'Friends Of REDAXO'
 supportpage: https://github.com/FriendsOfREDAXO/css_above_the_fold
 
 requires:
-    redaxo: ^5.1.0
+    redaxo: '^5.18.1'
+    php: '>=8.1'
+
+default_config:
+    active: true
+    load_css_async: true
+    debug: false
+    breakpoints:
+        xs: 375
+        sm: 640
+        md: 768
+        lg: 1024
+        xl: 1280
+        xxl: 1536
+    always_include_selectors: ''
+    never_include_selectors: ''
+
+page:
+    title: 'CSS Above The Fold'
+    perm: admin
+    icon: rex-icon fa-css3
+    subpages:
+        settings: { title: 'translate:settings' }

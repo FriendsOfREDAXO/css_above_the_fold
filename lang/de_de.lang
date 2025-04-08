@@ -1,0 +1,58 @@
+css_above_the_fold = CSS Above The Fold
+css_above_the_fold_title = CSS Above The Fold
+
+# Subpages
+settings = Einstellungen
+
+# Allgemeine Meldungen
+saved = Einstellungen wurden gespeichert.
+error = Es ist ein Fehler aufgetreten.
+
+# Einstellungen
+active = AddOn aktivieren
+active_info = Aktiviert oder deaktiviert die Funktion des AddOns.
+load_css_async = CSS asynchron laden
+load_css_async_info = Lädt CSS-Dateien asynchron nach dem Rendern der Seite.
+breakpoints = Viewport-Breakpoints
+breakpoints_info = Definiert die Breiten der verschiedenen Viewport-Größen in Pixel.
+
+# Cache-Verwaltung
+cache_management = Cache-Verwaltung
+cache_management_info = Hier können Sie die gespeicherten Critical CSS-Dateien verwalten.
+delete_all_cache = Gesamten Cache löschen
+cache_deleted_all = Es wurden {0} Cache-Dateien gelöscht.
+cache_deleted_file = Die Cache-Datei "{0}" wurde gelöscht.
+cache_delete_error = Die Cache-Datei "{0}" konnte nicht gelöscht werden.
+cache_file = Datei
+cache_viewport = Viewport
+cache_article = Artikel
+cache_language = Sprache
+cache_size = Größe
+cache_date = Datum
+cache_actions = Aktionen
+delete = Löschen
+cache_delete_confirm = Wollen Sie diese Cache-Datei wirklich löschen?
+no_cache_files = Es sind keine Cache-Dateien vorhanden.
+cache_files = Cache-Dateien
+unknown_article = Unbekannter Artikel
+unknown_language = Unbekannte Sprache
+
+# Selektoren
+selectors_info = Legen Sie fest, welche CSS-Selektoren immer oder nie im Critical CSS enthalten sein sollen.
+always_include = Immer einschließen
+always_include_info = Diese Selektoren werden immer im Critical CSS enthalten sein (einer pro Zeile).
+never_include = Nie einschließen
+never_include_info = Diese Selektoren werden nie im Critical CSS enthalten sein (einer pro Zeile).
+
+# Viewport-Einstellungen
+viewport_settings = Viewport-Einstellungen
+xs = Extra Small (Mobile)
+sm = Small (Kleines Tablet)
+md = Medium (Tablet)
+lg = Large (Kleiner Desktop)
+xl = Extra Large (Desktop)
+xxl = Extra Extra Large (Großer Desktop)
+
+# API-Meldungen
+yes = Ja
+no = Nein
