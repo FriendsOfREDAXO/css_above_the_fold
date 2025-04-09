@@ -232,13 +232,6 @@ class rex_api_css_above_the_fold extends rex_api_function
      */
     private function getCacheFile($viewport, $article_id, $clang_id)
     {
-        // Viewport-Namen bereinigen, um Directory Traversal oder ungültige Zeichen zu verhindern
-        $viewport = preg_replace('/[^a-zA-Z0-9_-]/', '', $viewport);
-        
-        // IDs als Integers sicherstellen
-        $article_id = (int) $article_id;
-        $clang_id = (int) $clang_id;
-        
-        return rex_path::addonCache('css_above_the_fold', $viewport . '_' . $article_id . '_' . $clang_id . '.css');
+        return CriticalCssHelper::getCacheFile($viewport, $article_id, $clang_id);
     }
 }
