@@ -1,11 +1,10 @@
 <?php
-
 /**
  * CSS Above The Fold AddOn
  * Hauptseite im Backend
  */
 
-echo \rex_view::title($this->i18n('title'));
+echo rex_view::title($this->i18n('css_above_the_fold_title'));
 
 // Include der entsprechenden Subpage
-include \rex_be_controller::getCurrentPageObject()->getSubPath();
+rex_be_controller::includeCurrentPageSubPath();
