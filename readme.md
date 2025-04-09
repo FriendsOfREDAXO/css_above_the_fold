@@ -1,16 +1,18 @@
 # CSS Above The Fold für REDAXO
 
-Moin! Mit diesem AddOn werden Websites blitzschnell geladen - es identifiziert CSS für den sichtbaren Bereich einer Seite (also "above the fold"), packt es direkt in den `<head>` und lädt den Rest asynchron nach. Resultat? Bessere PageSpeed-Werte, schnellere Ladezeiten und glücklichere Nutzer!
+Dieses AddOn beschleunigt deine Website, indem es das kritische CSS für den sichtbaren Bereich ("above the fold") identifiziert, direkt in den `<head>` einfügt und den Rest asynchron nachlädt. Das Ergebnis sind bessere PageSpeed-Werte, schnellere Ladezeiten und eine verbesserte Nutzererfahrung.
 
 ## Features 
 
-- **Smarter Viewport-Ansatz**: Statt der simplen mobile/desktop-Unterteilung gibt's jetzt anpassbare Breakpoints (xs, sm, md, lg, xl, xxl)
-- **Unterstützung moderner CSS-Features**: CSS-Variablen, verschachtelte Media Queries, komplexe Selektoren - alles kein Problem mehr!
-- **Richtig gute Performance**: Effizientere Algorithmen zur CSS-Extraktion und cleveres Caching
-- **Feintuning möglich**: Selektoren können jetzt explizit ein- oder ausgeschlossen werden
-- **DevOps-freundlich**: Mit dem mitgelieferten GitHub-Actions-Workflow kann der Cache automatisch warm gehalten werden
+- **Flexibler Viewport-Ansatz**: Sechs anpassbare Breakpoints (xs, sm, md, lg, xl, xxl) für optimales CSS auf allen Geräten
+- **Unterstützung für modernes CSS**: Vollständige Unterstützung von CSS-Variablen, Media Queries, verschachtelten Regeln und komplexen Selektoren
+- **Optimierte Performance**: Effiziente Algorithmen zur CSS-Extraktion und intelligentes Caching
+- **Anpassbare Selektoren**: Volle Kontrolle darüber, welche CSS-Selektoren immer oder nie im Critical CSS enthalten sein sollen
+- **CSS-Variablen-Integration**: Automatische Extraktion und Einbindung aller CSS-Variablen aus `:root`-Selektoren
+- **Beibehaltung wichtiger Regeln**: Option zum automatischen Einschließen aller CSS-Regeln mit `!important`
+- **Intelligente Erkennung**: Präzise Identifikation tatsächlich sichtbarer Elemente im Viewport
 
-## Technische Details für Entwickler
+## Technische Details
 
 Unter der Haube passiert Folgendes:
 
@@ -29,79 +31,91 @@ Unter der Haube passiert Folgendes:
    - Server-seitig via User-Agent (grundlegende Erkennung)
    - Client-seitig präzise via JavaScript
 
-## Installation in 30 Sekunden
+## Installation
 
-1. Im Installer "CSS Above The Fold" installieren
-2. Aktivieren
-3. Profit! 🚀
+1. Im REDAXO-Installer nach "CSS Above The Fold" suchen und installieren
+2. Zum Backend-Menü "CSS Above The Fold" navigieren
+3. Einstellungen nach Bedarf anpassen (die Standardeinstellungen sind bereits optimiert)
+4. Die Website im Frontend aufrufen, um das erste Critical CSS zu generieren
+
+## Einstellungen
+
+Im Einstellungsbereich des AddOns können folgende Optionen angepasst werden:
+
+- **AddOn aktivieren**: Schaltet die Funktionalität ein oder aus
+- **CSS asynchron laden**: Wenn aktiviert, werden normale CSS-Dateien asynchron geladen
+- **Debug-Modus**: Aktiviert ausführliche Logging-Informationen für die Fehlersuche
+- **Wichtige Regeln bewahren**: Behält CSS-Regeln mit !important immer bei
+- **CSS-Variablen einschließen**: Fügt alle `:root`-Variablen automatisch zum Critical CSS hinzu
+- **Viewport-Breakpoints**: Definiere die Breiten der verschiedenen Viewport-Größen in Pixel
+- **Immer einschließen**: CSS-Selektoren, die immer im Critical CSS enthalten sein sollen
+- **Nie einschließen**: CSS-Selektoren, die nie im Critical CSS enthalten sein sollen
+
+## Cache-Verwaltung
+
+Im Cache-Verwaltungsbereich kannst du:
+
+- Alle gespeicherten Critical CSS-Dateien einsehen
+- Einzelne Cache-Dateien löschen
+- Den gesamten Cache auf einmal leeren
+
+## Optimierungstipps
+
+Um die besten Ergebnisse mit diesem AddOn zu erzielen:
+
+1. **Wichtige CSS-Variablen immer einschließen**: Aktiviere die Option "CSS-Variablen einschließen" oder füge `:root` zur "Immer einschließen"-Liste hinzu.
+
+2. **Framework-Komponenten optimal nutzen**: Füge grundlegende Grid- und Typografie-Klassen deines CSS-Frameworks zur "Immer einschließen"-Liste hinzu:
+   - Bootstrap: `.container`, `.row`, `.col-*`
+   - Tailwind: Die wichtigsten Utility-Klassen
+   - Foundation: `.grid-container`, `.grid-x`, `.cell`
+
+3. **Animations-CSS ausschließen**: Füge Animations- und Keyframe-Selektoren zur "Nie einschließen"-Liste hinzu, um das Critical CSS schlank zu halten.
+
+4. **Selektoren für versteckte Elemente ausschließen**: Füge Klassen wie `.hidden`, `.d-none`, `.invisible` zur "Nie einschließen"-Liste hinzu.
+
+5. **Cache regelmäßig leeren**: Aktualisiere den Cache nach größeren Design-Änderungen, um das Critical CSS zu aktualisieren.
 
 ## API für Entwickler
 
-Für spezielle Anwendungsfälle gibt's diese nützlichen Methoden:
+Für spezielle Anwendungsfälle stellt das AddOn hilfreiche Funktionen bereit:
 
 ```php
-use FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold;
-
 // Manuelles asynchrones Laden einer CSS-Datei
-echo CssAboveTheFold::loadCssAsync('/assets/css/special.css');
+echo rex_add_css_async('/assets/css/special.css');
 
-// CSS-Cache-Datei für einen bestimmten Viewport abrufen
-$cachePath = CssAboveTheFold::getCacheFile('md', $articleId, $clangId);
+// Pfad zur Cache-Datei für einen bestimmten Viewport, Artikel und Sprache abrufen
+$cachePath = rex_get_critical_css_file('md', $articleId, $clangId);
 
-// Cache für einen Artikel leeren
-CssAboveTheFold::deleteCacheFile('xl_1_1.css');
+// Cache für einen bestimmten Artikel leeren
+rex_delete_critical_css($articleId, $clangId);
 
-// Gesamten Cache leeren
-$deletedFiles = CssAboveTheFold::deleteAllCacheFiles();
+// Komplette API-Dokumentation in der Klassendokumentation
 ```
 
-## Optimierungstricks
+## Fehlerbehebung
 
-- **CSS-Variablen im Critical CSS**: Packt wichtige CSS-Variablen in die "Immer einschließen"-Liste
-- **Framework-Komponenten**: Bootstrap/Tailwind/etc. Grid-System und Typografie sollten immer eingeschlossen werden
-- **Animations-CSS ausschließen**: Keyframes und Animationen aufräumen? Ab in die "Nie einschließen"-Liste
-- **Viewport-Analyse**: Im Cache nachschauen, welche Viewports am häufigsten sind und darauf optimieren
+Bei Problemen mit dem AddOn:
 
-## Für Performance-Nerds: Cache-Warming (Beta, aktuell nur Desktop)
+- **Seltsame Darstellungsfehler?** Aktiviere den Debug-Modus und überprüfe die REDAXO-Logs.
+- **JS-Fehler?** Prüfe die Browser-Konsole auf JavaScript-Fehler.
+- **Bestimmte Stile fehlen?** Füge die betreffenden Selektoren zur "Immer einschließen"-Liste hinzu.
+- **Cache wird nicht erstellt?** Prüfe auf CORS-Probleme oder JavaScript-Fehler in der Konsole.
 
-Damit das Critical CSS schon vor dem ersten Besucher bereitsteht, nutzt diesen GitHub-Actions-Workflow:
+## Limitierungen
 
-```yaml
-# Workflow-Datei aus .github/workflows-template kopieren
-# Secrets einrichten:
-# - SITEMAP_URL: https://example.com/sitemap.xml
-# - WAIT_TIME: 5000
-# - MAX_URLS: 0 (alle URLs)
-```
+- Das AddOn funktioniert am besten mit Seiten, deren Design einem einheitlichen Muster folgt.
+- Sehr dynamische Inhalte oder Ajax-basierte Seiten können zusätzliche Konfiguration erfordern.
+- Websites mit vielen Third-Party-Scripts sollten deren CSS zur "Nie einschließen"-Liste hinzufügen.
 
-Der Workflow krabbelt durch die Sitemap, öffnet jede Seite mit verschiedenen Viewport-Größen und lässt das JavaScript den CSS-Cache generieren. Mega praktisch nach Deployments!
+## Mitwirken
 
-## Warum die alte Version in die Tonne treten?
+Pull Requests sind herzlich willkommen! Besonders für:
 
-Die alte Version hatte ein paar Schwachstellen:
-- Probleme mit komplexeren CSS-Strukturen
-- Keine Unterstützung für moderne CSS-Features
-- Primitive mobile/desktop-Unterscheidung
-- Keine Möglichkeit, den Cache automatisiert zu füllen
-- Manchmal verpasste sie wichtige CSS-Regeln
-
-Version 2.0 löst all diese Probleme und bringt die Technik auf den neuesten Stand!
-
-## Fehlerbehebung für fortgeschrittene Nutzer
-
-- **Seltsame Darstellungsfehler?** Debug-Modus aktivieren und die REDAXO-Logs checken
-- **JS-Fehler?** Die Browser-Konsole verrät mehr
-- **Bestimmte Stile fehlen?** Liste der CSS-Selektoren überprüfen und ggf. zur "Immer einschließen"-Liste hinzufügen
-- **Cache wird nicht erstellt?** Möglicherweise CORS-Probleme oder JS-Fehler - Debug-Modus hilft!
-- **304 Responses beim Cache-Warming?** Kein Problem, der Workflow hat Cache-Busting eingebaut
-
-## Mitmachen
-
-PRs sind herzlich willkommen! Besonders für:
-- Unterstützung weiterer CSS-Features
-- Verbesserungen der Extraktion-Algorithmen
-- Backend-UI-Verbesserungen
-- Weitere Cache-Warming-Methoden
+- Verbesserungen der CSS-Extraktion
+- Optimierungen für spezifische CSS-Frameworks
+- Backend-UI-Erweiterungen
+- Unterstützung für weitere CSS-Features
 
 ## Danke an alle Beteiligten!
 
@@ -117,3 +131,7 @@ Dieses AddOn ist ein Community-Projekt. Vielen Dank an alle, die dazu beigetrage
 **Projektleitung**
 
 [Thomas Skerbis](https://github.com/skerbis)
+
+## Lizenz
+
+MIT Lizenz, siehe [LICENSE.md](LICENSE.md)
