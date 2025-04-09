@@ -13,6 +13,12 @@ class CriticalCssHelper
      */
     public static function detectViewport()
     {
+        // Prüfen, ob ein Viewport in der Session erzwungen wurde (für Cache-Warming)
+        $forcedViewport = rex_session('forced_viewport', 'string', '');
+        if (!empty($forcedViewport)) {
+            return $forcedViewport;
+        }
+
         // Standardmäßig Desktop-Viewport annehmen
         $viewport = 'xl';
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
