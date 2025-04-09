@@ -3,6 +3,7 @@ css_above_the_fold_title = CSS Above The Fold
 
 # Subpages
 settings = Einstellungen
+cache_management = Cache-Verwaltung
 
 # Allgemeine Meldungen
 saved = Einstellungen wurden gespeichert.
@@ -13,11 +14,23 @@ active = AddOn aktivieren
 active_info = Aktiviert oder deaktiviert die Funktion des AddOns.
 load_css_async = CSS asynchron laden
 load_css_async_info = Lädt CSS-Dateien asynchron nach dem Rendern der Seite.
-breakpoints = Viewport-Breakpoints
-breakpoints_info = Definiert die Breiten der verschiedenen Viewport-Größen in Pixel.
+debug = Debug-Modus
+debug_info = Aktiviert ausführliche Logging-Informationen für die Fehlersuche.
+preserve_important_rules = Wichtige Regeln bewahren
+preserve_important_rules_info = Behält CSS-Regeln mit !important immer bei.
+include_css_vars = CSS-Variablen einschließen
+include_css_vars_info = Fügt alle :root-Variablen automatisch zum Critical CSS hinzu.
+
+# Viewport-Einstellungen
+viewport_settings = Viewport-Einstellungen
+breakpoint_xs = Extra Small (Mobile)
+breakpoint_sm = Small (Kleines Tablet)
+breakpoint_md = Medium (Tablet)
+breakpoint_lg = Large (Kleiner Desktop)
+breakpoint_xl = Extra Large (Desktop)
+breakpoint_xxl = Extra Extra Large (Großer Desktop)
 
 # Cache-Verwaltung
-cache_management = Cache-Verwaltung
 cache_management_info = Hier können Sie die gespeicherten Critical CSS-Dateien verwalten.
 delete_all_cache = Gesamten Cache löschen
 cache_deleted_all = Es wurden {0} Cache-Dateien gelöscht.
@@ -36,23 +49,31 @@ no_cache_files = Es sind keine Cache-Dateien vorhanden.
 cache_files = Cache-Dateien
 unknown_article = Unbekannter Artikel
 unknown_language = Unbekannte Sprache
+cache_warm = Cache aufwärmen
+cache_warm_info = Ruft die Startseite mit verschiedenen Viewport-Größen auf, um den Cache vorzufüllen.
+cache_warmed = Der Cache wurde erfolgreich vorgewärmt.
 
 # Selektoren
 selectors_info = Legen Sie fest, welche CSS-Selektoren immer oder nie im Critical CSS enthalten sein sollen.
 always_include = Immer einschließen
-always_include_info = Diese Selektoren werden immer im Critical CSS enthalten sein (einer pro Zeile).
+always_include_info = Diese Selektoren werden immer im Critical CSS enthalten sein (einer pro Zeile). Beispiel: :root, .container
 never_include = Nie einschließen
-never_include_info = Diese Selektoren werden nie im Critical CSS enthalten sein (einer pro Zeile).
+never_include_info = Diese Selektoren werden nie im Critical CSS enthalten sein (einer pro Zeile). Beispiel: .footer, .hidden
 
-# Viewport-Einstellungen
-viewport_settings = Viewport-Einstellungen
-xs = Extra Small (Mobile)
-sm = Small (Kleines Tablet)
-md = Medium (Tablet)
-lg = Large (Kleiner Desktop)
-xl = Extra Large (Desktop)
-xxl = Extra Extra Large (Großer Desktop)
+# Leistungs-Indikatoren
+performance_stats = Leistungs-Indikatoren
+extraction_time = Extraktionszeit
+extraction_time_info = Zeit in Millisekunden, die für die CSS-Extraktion benötigt wurde.
+css_size_original = Originalgröße
+css_size_critical = Kritische Größe
+css_size_savings = Einsparung
+last_extraction = Letzte Extraktion
 
 # API-Meldungen
 yes = Ja
 no = Nein
+
+# Fehlermeldungen
+api_error_token = Ungültiger Token.
+api_error_no_css = Kein CSS gesendet oder CSS ist ungültig.
+api_error_save = Fehler beim Speichern des Critical CSS.
