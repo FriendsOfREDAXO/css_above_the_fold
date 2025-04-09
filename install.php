@@ -14,19 +14,11 @@ rex_dir::create($assetsDir);
 $jsDir = $assetsDir . '/js';
 rex_dir::create($jsDir);
 
-// Critical-Extractor JavaScript-Datei in das assets/js-Verzeichnis kopieren
+// Critical-Extractor JavaScript-Datei erstellen
 $jsFile = rex_path::addon('css_above_the_fold', 'assets/js/critical-extractor.js');
-$templateFile = rex_path::addon('css_above_the_fold', 'critical-extractor.js.template');
 
-if (file_exists($templateFile)) {
-    $jsContent = file_get_contents($templateFile);
-    rex_file::put($jsFile, $jsContent);
-} else {
-    echo rex_view::warning('Template-Datei für JavaScript nicht gefunden: ' . $templateFile);
-}
-
-// Erfolgsmeldung
-return true;
+// Der JavaScript-Code als PHP-String (Hierdurch vermeidet man das Syntax-Problem)
+$jsContent = <<<'EOD'
 /**
  * CSS Above The Fold - Critical CSS Extractor
  * 
@@ -53,8 +45,15 @@ return true;
                         viewportWidth: window.innerWidth,
                         includeCssVars: {{INCLUDE_CSS_VARS}},
                         preserveImportantRules: {{PRESERVE_IMPORTANT_RULES}},
-                        alwaysIncludeSelectors: '{{ALWAYS_INCLUDE}}'.split(/\r?\n/).filter(Boolean),
-                        neverIncludeSelectors: '{{NEVER_INCLUDE}}'.split(/\r?\n/).filter(Boolean)
+                        // Verwende eine Funktion zum Aufteilen der Selektoren
+                        alwaysIncludeSelectors: function() {
+                            var selectors = '{{ALWAYS_INCLUDE}}'.split(/\r?\n/);
+                            return selectors.filter(function(s) { return s.trim() !== ''; });
+                        }(),
+                        neverIncludeSelectors: function() {
+                            var selectors = '{{NEVER_INCLUDE}}'.split(/\r?\n/);
+                            return selectors.filter(function(s) { return s.trim() !== ''; });
+                        }()
                     },
                     
                     // Cache für verarbeitete Elemente
@@ -109,7 +108,7 @@ return true;
                             }
 
                             // Selektoren verarbeiten, die immer eingeschlossen werden sollen
-                            this.config.alwaysIncludeSelectors.forEach(selector => {
+                            this.config.alwaysIncludeSelectors.forEach(function(selector) {
                                 if (selector && !this.processedSelectors.has(selector)) {
                                     var selectorStyles = this.extractSelectorStyles(selector);
                                     if (selectorStyles) {
@@ -117,7 +116,7 @@ return true;
                                         this.processedSelectors.add(selector);
                                     }
                                 }
-                            });
+                            }.bind(this));
 
                             // Selektoren für sichtbare Elemente extrahieren
                             for (var i = 0; i < visibleElements.length; i++) {
@@ -128,22 +127,28 @@ return true;
                                     var selector = selectorInfo.selector;
                                     
                                     // Prüfen, ob der Selektor übersprungen werden soll
-                                    var shouldSkip = this.config.neverIncludeSelectors.some(neverSelector => 
-                                        selector.includes(neverSelector)
-                                    );
+                                    var shouldSkip = this.config.neverIncludeSelectors.some(function(neverSelector) {
+                                        return selector.includes(neverSelector);
+                                    });
                                     
                                     if (shouldSkip) continue;
                                     
                                     // CSS für diesen Selektor extrahieren
                                     if (!this.processedSelectors.has(selector)) {
-                                        styles += this.extractSelectorStyles(selector);
-                                        this.processedSelectors.add(selector);
+                                        var selectorCss = this.extractSelectorStyles(selector);
+                                        if (selectorCss) {
+                                            styles += selectorCss;
+                                            this.processedSelectors.add(selector);
+                                        }
                                     }
                                     
                                     // Eltern-Selektor verarbeiten, falls vorhanden
                                     if (selectorInfo.parentSelector && !this.processedSelectors.has(selectorInfo.parentSelector)) {
-                                        styles += this.extractSelectorStyles(selectorInfo.parentSelector);
-                                        this.processedSelectors.add(selectorInfo.parentSelector);
+                                        var parentCss = this.extractSelectorStyles(selectorInfo.parentSelector);
+                                        if (parentCss) {
+                                            styles += parentCss;
+                                            this.processedSelectors.add(selectorInfo.parentSelector);
+                                        }
                                     }
                                 }
                             }
@@ -178,18 +183,18 @@ return true;
                         var cssVars = "";
                         var rootSelectors = [":root", "html", "body"];
                         
-                        rootSelectors.forEach(rootSelector => {
-                            if (!this.processedSelectors.has(rootSelector)) {
-                                var selectorStyles = this.extractSelectorStyles(rootSelector);
+                        rootSelectors.forEach(function(selector) {
+                            if (!this.processedSelectors.has(selector)) {
+                                var selectorStyles = this.extractSelectorStyles(selector);
                                 if (selectorStyles) {
                                     // Nur CSS-Variablen behalten
                                     if (selectorStyles.includes("--")) {
                                         cssVars += selectorStyles;
-                                        this.processedSelectors.add(rootSelector);
+                                        this.processedSelectors.add(selector);
                                     }
                                 }
                             }
-                        });
+                        }.bind(this));
                         
                         return cssVars;
                     },
@@ -301,7 +306,9 @@ return true;
                             
                             if (classes.length > 0) {
                                 classes.sort();
-                                selector += "." + classes.map(cls => cls.replace(/(:|\\.|\[|\]|,|=)/g, "\\\\$1")).join('.');
+                                selector += "." + classes.map(function(cls) {
+                                    return cls.replace(/(:|\\.|\[|\]|,|=)/g, "\\\\$1");
+                                }).join('.');
                             }
                         }
 
@@ -379,17 +386,7 @@ return true;
                                             var ruleSelector = rule.selectorText;
                                             
                                             if (ruleSelector && this.doesRuleMatchSelector(ruleSelector, selector)) {
-                                                // Bei preserveImportantRules prüfen wir auf !important
-                                                if (this.config.preserveImportantRules) {
-                                                    var containsImportant = rule.cssText.includes("!important");
-                                                    if (containsImportant) {
-                                                        ruleText = rule.cssText;
-                                                    } else {
-                                                        ruleText = rule.cssText;
-                                                    }
-                                                } else {
-                                                    ruleText = rule.cssText;
-                                                }
+                                                ruleText = rule.cssText;
                                             }
                                         } 
                                         // CSSMediaRule (Media Queries)
@@ -467,7 +464,7 @@ return true;
                      */
                     doesRuleMatchSelector: function(ruleSelectorText, elementSelector) {
                         // Multi-Selektoren aufspalten
-                        var ruleSelectors = ruleSelectorText.split(',').map(s => s.trim());
+                        var ruleSelectors = ruleSelectorText.split(',').map(function(s) { return s.trim(); });
                         
                         // Prüfung auf exakte Übereinstimmung oder Teil-Selektor-Übereinstimmung
                         for (var i = 0; i < ruleSelectors.length; i++) {
@@ -480,7 +477,7 @@ return true;
                             
                             // Klassen-/ID-basierte Prüfung
                             if (elementSelector.includes('.') || elementSelector.includes('#')) {
-                                // Einfache Teilstring-Prüfung (kann verbessert werden)
+                                // Einfache Teilstring-Prüfung
                                 if (ruleSelector.includes(elementSelector) || 
                                     elementSelector.includes(ruleSelector)) {
                                     return true;
@@ -563,8 +560,12 @@ return true;
 })();
 EOD;
 
-// JavaScript-Datei schreiben
-rex_file::put($jsFile, $jsContent);
+// Den JavaScript-Code in die Datei schreiben
+if (rex_file::put($jsFile, $jsContent)) {
+    echo rex_view::success('JavaScript-Datei erfolgreich erstellt: ' . $jsFile);
+} else {
+    echo rex_view::warning('Fehler beim Erstellen der JavaScript-Datei: ' . $jsFile);
+}
 
-// Erfolgsmeldung
+// Erfolgreiche Installation signalisieren
 return true;
