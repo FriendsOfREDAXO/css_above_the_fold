@@ -1,5 +1,5 @@
 package: css_above_the_fold
-version: '2.0.0-alpha1'
+version: '2.0.0-beta1'
 author: 'Friends Of REDAXO'
 supportpage: https://github.com/FriendsOfREDAXO/css_above_the_fold
 
@@ -11,6 +11,8 @@ default_config:
     active: true
     load_css_async: true
     debug: false
+    preserve_important_rules: true
+    include_css_vars: true
     breakpoints:
         xs: 375
         sm: 640
@@ -18,12 +20,13 @@ default_config:
         lg: 1024
         xl: 1280
         xxl: 1536
-    always_include_selectors: ''
-    never_include_selectors: ''
+    always_include_selectors: ":root\n.container\n.row"
+    never_include_selectors: ".footer-\n.hidden"
 
 page:
-    title: 'CSS Above The Fold'
+    title: 'translate:css_above_the_fold_title'
     perm: admin
-    icon: rex-icon fa-css3
+    icon: rex-icon fa-rocket
     subpages:
         settings: { title: 'translate:settings' }
+        cache: { title: 'translate:cache_management' }
