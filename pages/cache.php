@@ -40,8 +40,27 @@ if ($func === 'delete_all_cache') {
         echo rex_view::error($addon->i18n('cache_delete_error', $file));
     }
 } elseif ($func === 'warm_cache') {
-    // Cache aufwärmen (Basis-Implementierung - lädt nur die Startseite)
+    // Token für das Cache-Warming generieren
     $token = bin2hex(random_bytes(16));
+    $addon->setConfig('cache_warm_token', $token);
+    
+    // Konstruiere die URL für die Startseite korrekt mit dem Inhaltstyp
+    $startArticleId = rex_article::getSiteStartArticleId();
+    $startClangId = rex_clang::getStartId();
+    
+    // Direkte URL zur Frontend-Startseite
+    $baseUrl = rtrim(rex::getServer(), '/');
+    $frontendUrl = $baseUrl . '/index.php?cache_warm=1&token=' . $token;
+    
+    // Viewports abrufen
+    $viewports = [
+        'xs' => $addon->getConfig('breakpoint_xs', 375),
+        'sm' => $addon->getConfig('breakpoint_sm', 640),
+        'md' => $addon->getConfig('breakpoint_md', 768),
+        'lg' => $addon->getConfig('breakpoint_lg', 1024),
+        'xl' => $addon->getConfig('breakpoint_xl', 1280),
+        'xxl' => $addon->getConfig('breakpoint_xxl', 1536)
+    ];
     
     echo rex_view::info('
         <div class="progress">
@@ -50,52 +69,58 @@ if ($func === 'delete_all_cache') {
         <div id="warm-status">Bereite Cache-Warming vor...</div>
         <script>
             (function() {
-                const viewports = ["xs", "sm", "md", "lg", "xl", "xxl"];
+                const viewports = ' . json_encode(array_keys($viewports)) . ';
+                const viewportSizes = ' . json_encode($viewports) . ';
+                const baseUrl = "' . $frontendUrl . '";
                 const progress = document.querySelector(".progress-bar");
                 const status = document.getElementById("warm-status");
                 let current = 0;
                 
-                function warmViewport(viewport) {
-                    status.textContent = "Warme Cache für Viewport: " + viewport;
+                function warmViewport(index) {
+                    if (index >= viewports.length) {
+                        status.textContent = "Cache-Warming abgeschlossen!";
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 2000);
+                        return;
+                    }
+                    
+                    const viewport = viewports[index];
+                    const viewportWidth = viewportSizes[viewport];
+                    
+                    status.textContent = `Wärme Cache für Viewport: ${viewport} (${viewportWidth}px)`;
                     
                     const iframe = document.createElement("iframe");
-                    iframe.style.width = viewport === "xs" ? "375px" : 
-                                         viewport === "sm" ? "640px" : 
-                                         viewport === "md" ? "768px" : 
-                                         viewport === "lg" ? "1024px" : 
-                                         viewport === "xl" ? "1280px" : "1536px";
+                    iframe.style.width = viewportWidth + "px";
                     iframe.style.height = "800px";
                     iframe.style.position = "absolute";
-                    iframe.style.opacity = "0.01";
-                    iframe.style.pointerEvents = "none";
+                    iframe.style.bottom = "10px";
+                    iframe.style.right = "10px";
+                    iframe.style.opacity = "0.2"; // Leicht sichtbar für Debug
+                    iframe.style.zIndex = "9999";
+                    iframe.style.border = "2px solid blue";
                     
-                    // Cache-Busting mit Token
-                    iframe.src = "' . rex_url::frontendController() . '?cache_token=' . $token . '&viewport=" + viewport;
+                    // URL mit spezifischem Viewport
+                    iframe.src = baseUrl + "&viewport=" + viewport;
                     
                     document.body.appendChild(iframe);
                     
+                    // Aktualisiere den Fortschritt
+                    const percent = Math.round(((index + 1) / viewports.length) * 100);
+                    progress.style.width = percent + "%";
+                    progress.setAttribute("aria-valuenow", percent);
+                    progress.textContent = percent + "%";
+                    
+                    // Warte länger, da CSS-Extraktion Zeit braucht
                     setTimeout(function() {
                         document.body.removeChild(iframe);
-                        current++;
-                        const percent = Math.round((current / viewports.length) * 100);
-                        progress.style.width = percent + "%";
-                        progress.setAttribute("aria-valuenow", percent);
-                        progress.textContent = percent + "%";
-                        
-                        if (current < viewports.length) {
-                            warmViewport(viewports[current]);
-                        } else {
-                            status.textContent = "Cache-Warming abgeschlossen!";
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 2000);
-                        }
-                    }, 5000);  // 5 Sekunden pro Viewport
+                        warmViewport(index + 1);
+                    }, 8000); // 8 Sekunden pro Viewport
                 }
                 
                 // Starten
                 setTimeout(function() {
-                    warmViewport(viewports[0]);
+                    warmViewport(0);
                 }, 1000);
             })();
         </script>
