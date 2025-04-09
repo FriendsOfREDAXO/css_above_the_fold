@@ -36,19 +36,27 @@ if (rex::isFrontend() && !rex::isDebugMode()) {
             return $content;
         }
         
-        // Viewport ermitteln (serverseitige Schätzung)
-        $viewport = detectViewport();
-        
-        // Cache-Datei für das aktuelle Critical CSS
-        $cacheFile = getCacheFile($viewport, $article_id, $clang_id);
-        
-        // Wenn Cache existiert, lesbar ist und Inhalt hat -> CSS inline einbinden
-        if (is_readable($cacheFile) && filesize($cacheFile) > 0) {
-            return processWithInlineCss($cacheFile, $content);
-        } 
-        // Sonst -> JavaScript zur Generierung einbinden
-        else {
-            return processWithCriticalJs($viewport, $article_id, $clang_id, $content);
+        // Helper-Klasse verwenden
+        try {
+            // Viewport ermitteln (serverseitige Schätzung)
+            $viewport = CriticalCssHelper::detectViewport();
+            
+            // Cache-Datei für das aktuelle Critical CSS
+            $cacheFile = CriticalCssHelper::getCacheFile($viewport, $article_id, $clang_id);
+            
+            // Wenn Cache existiert, lesbar ist und Inhalt hat -> CSS inline einbinden
+            if (is_readable($cacheFile) && filesize($cacheFile) > 0) {
+                return CriticalCssHelper::processWithInlineCss($cacheFile, $content);
+            } 
+            // Sonst -> JavaScript zur Generierung einbinden
+            else {
+                return CriticalCssHelper::processWithCriticalJs($viewport, $article_id, $clang_id, $content);
+            }
+        } catch (Exception $e) {
+            if (CSS_ABOVE_THE_FOLD_DEBUG) {
+                rex_logger::factory()->error('CSS Above The Fold: Fehler: ' . $e->getMessage());
+            }
+            return $content;
         }
     }, rex_extension::LATE);
 }
