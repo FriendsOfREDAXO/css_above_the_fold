@@ -37,18 +37,18 @@ if (rex::isFrontend() && !rex::isDebugMode()) {
         }
         
         // Viewport ermitteln (serverseitige Schätzung)
-        $viewport = self::detectViewport();
+        $viewport = detectViewport();
         
         // Cache-Datei für das aktuelle Critical CSS
-        $cacheFile = self::getCacheFile($viewport, $article_id, $clang_id);
+        $cacheFile = getCacheFile($viewport, $article_id, $clang_id);
         
         // Wenn Cache existiert, lesbar ist und Inhalt hat -> CSS inline einbinden
         if (is_readable($cacheFile) && filesize($cacheFile) > 0) {
-            return self::processWithInlineCss($cacheFile, $content);
+            return processWithInlineCss($cacheFile, $content);
         } 
         // Sonst -> JavaScript zur Generierung einbinden
         else {
-            return self::processWithCriticalJs($viewport, $article_id, $clang_id, $content);
+            return processWithCriticalJs($viewport, $article_id, $clang_id, $content);
         }
     }, rex_extension::LATE);
 }
