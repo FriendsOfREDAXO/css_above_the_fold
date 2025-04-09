@@ -13,13 +13,12 @@ default_config:
     debug: false
     preserve_important_rules: true
     include_css_vars: true
-    breakpoints:
-        xs: 375
-        sm: 640
-        md: 768
-        lg: 1024
-        xl: 1280
-        xxl: 1536
+    breakpoint_xs: 375
+    breakpoint_sm: 640
+    breakpoint_md: 768
+    breakpoint_lg: 1024
+    breakpoint_xl: 1280
+    breakpoint_xxl: 1536
     always_include_selectors: ":root\n.container\n.row"
     never_include_selectors: ".footer-\n.hidden"
 
