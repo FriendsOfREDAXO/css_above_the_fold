@@ -10,18 +10,19 @@ rex_dir::create($cacheDir);
 
 // Assets-Verzeichnisstruktur erstellen
 $assetsDir = rex_path::addon('css_above_the_fold', 'assets');
+rex_dir::create($assetsDir);
 $jsDir = $assetsDir . '/js';
 rex_dir::create($jsDir);
 
 // Critical-Extractor JavaScript-Datei in das assets/js-Verzeichnis kopieren
 $jsFile = rex_path::addon('css_above_the_fold', 'assets/js/critical-extractor.js');
-$jsContent = file_get_contents(__DIR__ . '/critical-extractor.js.template');
+$templateFile = rex_path::addon('css_above_the_fold', 'critical-extractor.js.template');
 
-if ($jsContent) {
+if (file_exists($templateFile)) {
+    $jsContent = file_get_contents($templateFile);
     rex_file::put($jsFile, $jsContent);
-    echo rex_view::success('JavaScript-Datei erfolgreich erstellt: ' . $jsFile);
 } else {
-    echo rex_view::warning('Template-Datei für JavaScript nicht gefunden. Das AddOn könnte nicht vollständig funktionieren.');
+    echo rex_view::warning('Template-Datei für JavaScript nicht gefunden: ' . $templateFile);
 }
 
 // Erfolgsmeldung
