@@ -1,250 +1,244 @@
 <?php
-
 /**
  * CSS Above The Fold API
  * 
  * Verarbeitet die API-Anfragen für das AddOn
  */
-class rex_api_css_above_the_fold extends \rex_api_function
+class rex_api_css_above_the_fold extends rex_api_function
 {
     /** @var bool API im Frontend verfügbar machen */
     protected $published = true;
     
-    /** @var array Antwort-Array */
-    protected array $response = [];
-    
-    /** @var bool Erfolgsstatus */
-    protected bool $success = true;
-
     /**
      * Führt die API-Funktion aus
      * 
-     * @throws \rex_api_exception Bei Fehlern
+     * @throws rex_api_exception Bei Fehlern
      */
-    public function execute(): \rex_api_result
+    public function execute()
     {
         // API-Output-Buffer leeren, um unerwünschte Ausgaben zu vermeiden
-        \rex_response::cleanOutputBuffers();
+        rex_response::cleanOutputBuffers();
         
         // Prüfen, ob es ein POST-Request ist
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            throw new \rex_api_exception('Ungültige Anfragemethode. Nur POST ist erlaubt.');
+            $this->sendErrorResponse('Ungültige Anfragemethode. Nur POST ist erlaubt.', 405);
+            exit;
         }
 
-        $method = \rex_post('method', 'string', '');
-        $internalMethod = '__' . $method;
-
-        if (!$method) {
-            // Falls kein method-Parameter gefunden wurde, verwende 'saveCss' als Standard
-            $method = 'saveCss';
-            $internalMethod = '__' . $method;
-        }
-
-        if (!method_exists($this, $internalMethod)) {
-            $this->logError(E_WARNING, "CSS Above The Fold API: Methode '{$method}' existiert nicht oder ist nicht aufrufbar.");
-            throw new \rex_api_exception("Methode '{$method}' existiert nicht.");
-        }
+        $method = rex_post('method', 'string', 'saveCss');
         
-        try {
-            // Methode ausführen
-            $this->$internalMethod();
-        } catch (\rex_api_exception $apiEx) {
-            // API-spezifische Exceptions weiterwerfen
-            throw $apiEx;
-        } catch (\Exception $ex) {
-            // Allgemeine Exceptions abfangen, protokollieren und eine generische rex_api_exception werfen
-            $this->logError(E_WARNING, "CSS Above The Fold API: {$ex->getMessage()}", $ex->getFile(), $ex->getLine());
-            throw new \rex_api_exception('Ein interner Serverfehler ist aufgetreten.', $ex);
+        if ($method === 'saveCss') {
+            $this->saveCss();
+        } elseif ($method === 'deleteCss') {
+            $this->deleteCss();
+        } elseif ($method === 'clearCache') {
+            $this->clearCache();
+        } else {
+            $this->sendErrorResponse('Unbekannte Methode: ' . $method, 400);
+            exit;
         }
-        
-        // Header setzen, bevor Ausgabe gesendet wird
-        \rex_response::setHeader('Content-Type', 'application/json; charset=utf-8');
-        
-        // Bei erfolgreichem Abschluss ein JSON-Ergebnis zurückgeben und beenden
-        return new \rex_api_result($this->success, $this->response);
     }
 
     /**
      * Speichert das Critical CSS
-     * Interne Methode mit Präfix __
-     * 
-     * @throws \rex_api_exception Bei Fehlern
      */
-    private function __saveCss(): void
+    private function saveCss()
     {
-        $addon = \rex_addon::get('css_above_the_fold');
-        $token = \rex_post('token', 'string', '');
-        $css = \rex_post('css', 'string', '');
-        $viewport = \rex_post('viewport', 'string', 'xl');
-        $article_id = \rex_post('article_id', 'int', 0);
-        $clang_id = \rex_post('clang_id', 'int', 0);
+        $addon = rex_addon::get('css_above_the_fold');
+        $token = rex_post('token', 'string', '');
+        $css = rex_post('css', 'string', '');
+        $viewport = rex_post('viewport', 'string', 'xl');
+        $article_id = rex_post('article_id', 'int', 0);
+        $clang_id = rex_post('clang_id', 'int', 0);
+        $extraction_time = rex_post('extraction_time', 'int', 0);
         
         $tokenKey = 'token_' . $viewport . '_' . $article_id . '_' . $clang_id;
         $expectedToken = $addon->getConfig($tokenKey, null);
 
-        if (empty($token)) {
-             $this->success = false;
-             throw new \rex_api_exception('Token fehlt.');
+        if (empty($token) || $token !== $expectedToken) {
+            $this->sendErrorResponse($addon->i18n('api_error_token'), 403);
+            exit;
         }
         
-        if (null === $expectedToken) {
-            $this->success = false;
-            $this->logError(E_WARNING, "CSS Above The Fold API: Erwarteter Token '{$tokenKey}' nicht in der Konfiguration gefunden.");
-            throw new \rex_api_exception('Token ist ungültig oder abgelaufen.');
-        }
-        
-        if (!hash_equals((string)$expectedToken, $token)) {
-             $this->success = false;
-             $this->logError(E_WARNING, "CSS Above The Fold API: Ungültiger Token für '{$tokenKey}' bereitgestellt.");
-             throw new \rex_api_exception('Token ist ungültig.');
-        }
-
         // Benutzten Token entfernen
         $addon->removeConfig($tokenKey);
 
-        if ($article_id <= 0) {
-            $this->success = false;
-            throw new \rex_api_exception('Artikel-ID nicht gesetzt oder ungültig.');
-        }
-        
-        if ($clang_id <= 0) {
-            $this->success = false;
-            throw new \rex_api_exception('Sprach-ID nicht gesetzt oder ungültig.');
-        }
-        
-        if (empty($viewport)) {
-             $this->success = false;
-             throw new \rex_api_exception('Viewport nicht gesetzt.');
+        if ($article_id <= 0 || $clang_id <= 0 || empty($viewport)) {
+            $this->sendErrorResponse('Fehlende Parameter (article_id, clang_id oder viewport)', 400);
+            exit;
         }
         
         $trimmedCss = trim($css);
-        if (empty($trimmedCss)) {
-             $this->success = false;
-             throw new \rex_api_exception('CSS-Inhalt ist leer.');
+        if (empty($trimmedCss) || strlen($trimmedCss) < 10) {
+            $this->sendErrorResponse($addon->i18n('api_error_no_css'), 400);
+            exit;
         }
         
-        if (strlen($trimmedCss) < 10 || (!str_contains($trimmedCss, '{') && !str_contains($trimmedCss, '}'))) {
-             $this->success = false;
-             $this->logError(E_WARNING, "CSS Above The Fold API: Potenziell ungültiges CSS für {$tokenKey} empfangen: " . substr($trimmedCss, 0, 100));
-             throw new \rex_api_exception('CSS-Inhalt scheint ungültig zu sein.');
+        // Pfad zur Cache-Datei
+        $file = $this->getCacheFile($viewport, $article_id, $clang_id);
+        
+        // CSS in die Cache-Datei schreiben
+        if (rex_file::put($file, $css) === false) {
+            $this->sendErrorResponse($addon->i18n('api_error_save'), 500);
+            exit;
         }
         
-        $file = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
-        
-        if (false === \rex_file::put($file, $css)) {
-             $this->success = false;
-             $this->logError(E_ERROR, "CSS Above The Fold API: Fehler beim Schreiben der CSS-Datei: {$file}");
-             throw new \rex_api_exception('Fehler beim Speichern der CSS-Datei.');
+        // Statistik speichern (wenn gewünscht)
+        if ($extraction_time > 0) {
+            $statsKey = 'stats_' . $viewport . '_' . $article_id . '_' . $clang_id;
+            $addon->setConfig($statsKey, [
+                'extraction_time' => $extraction_time,
+                'size' => strlen($css),
+                'date' => time()
+            ]);
         }
         
-        // Erfolgreiche Antwort befüllen
-        $this->success = true;
-        $this->response['status'] = 'success';
-        $this->response['file'] = basename($file);
-        $this->response['message'] = 'Critical CSS erfolgreich gespeichert.';
+        // Erfolgreiche Antwort senden
+        $this->sendSuccessResponse([
+            'file' => basename($file),
+            'message' => 'Critical CSS erfolgreich gespeichert.',
+            'size' => strlen($css),
+            'extraction_time' => $extraction_time
+        ]);
+        exit;
     }
 
     /**
      * Löscht das Critical CSS
-     * Interne Methode mit Präfix __
-     * 
-     * @throws \rex_api_exception Bei Fehlern
      */
-    private function __deleteCss(): void
+    private function deleteCss()
     {
-        $addon = \rex_addon::get('css_above_the_fold');
-        $token = \rex_post('token', 'string', '');
-        $viewport = \rex_post('viewport', 'string', '');
-        $article_id = \rex_post('article_id', 'int', 0);
-        $clang_id = \rex_post('clang_id', 'int', 0);
+        $addon = rex_addon::get('css_above_the_fold');
+        $token = rex_post('token', 'string', '');
+        $viewport = rex_post('viewport', 'string', '');
+        $article_id = rex_post('article_id', 'int', 0);
+        $clang_id = rex_post('clang_id', 'int', 0);
         
-        // Token validieren (falls implementiert)
-        $tokenKey = 'delete_token_' . $viewport . '_' . $article_id . '_' . $clang_id;
+        // Token validieren
+        $tokenKey = 'delete_token';
         $expectedToken = $addon->getConfig($tokenKey, null);
         
-        if (empty($token) || null === $expectedToken || !hash_equals((string)$expectedToken, $token)) {
-            $this->success = false;
-            throw new \rex_api_exception('Ungültiger Token für das Löschen.');
+        if (empty($token) || $token !== $expectedToken) {
+            $this->sendErrorResponse('Ungültiger Token für das Löschen.', 403);
+            exit;
         }
         
         // Benutzten Token entfernen
         $addon->removeConfig($tokenKey);
         
         if ($article_id <= 0 || $clang_id <= 0 || empty($viewport)) {
-            $this->success = false;
-            throw new \rex_api_exception('Fehlende erforderliche Parameter für das Löschen.');
+            $this->sendErrorResponse('Fehlende erforderliche Parameter für das Löschen.', 400);
+            exit;
         }
         
-        $file = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::getCacheFile($viewport, $article_id, $clang_id);
+        $file = $this->getCacheFile($viewport, $article_id, $clang_id);
         
         if (!file_exists($file)) {
-            $this->success = false;
-            throw new \rex_api_exception('CSS-Datei existiert nicht.');
+            $this->sendErrorResponse('CSS-Datei existiert nicht.', 404);
+            exit;
         }
         
-        if (!\FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::deleteCacheFile(basename($file))) {
-            $this->success = false;
-            $this->logError(E_WARNING, "CSS Above The Fold API: Fehler beim Löschen der CSS-Datei: {$file}");
-            throw new \rex_api_exception('Fehler beim Löschen der CSS-Datei.');
+        if (!rex_file::delete($file)) {
+            $this->sendErrorResponse('Fehler beim Löschen der CSS-Datei.', 500);
+            exit;
         }
         
-        // Erfolgreiche Antwort befüllen
-        $this->success = true;
-        $this->response['status'] = 'success';
-        $this->response['message'] = 'Critical CSS erfolgreich gelöscht.';
+        // Statistik ebenfalls löschen
+        $statsKey = 'stats_' . $viewport . '_' . $article_id . '_' . $clang_id;
+        $addon->removeConfig($statsKey);
+        
+        // Erfolgreiche Antwort senden
+        $this->sendSuccessResponse([
+            'message' => 'Critical CSS erfolgreich gelöscht.'
+        ]);
+        exit;
     }
     
     /**
      * Löscht den gesamten Cache
-     * Interne Methode mit Präfix __
-     * 
-     * @throws \rex_api_exception Bei Fehlern
      */
-    private function __clearCache(): void
+    private function clearCache()
     {
-        $addon = \rex_addon::get('css_above_the_fold');
-        $token = \rex_post('token', 'string', '');
+        $addon = rex_addon::get('css_above_the_fold');
+        $token = rex_post('token', 'string', '');
         
         // Token validieren
         $tokenKey = 'clear_cache_token';
         $expectedToken = $addon->getConfig($tokenKey, null);
         
-        if (empty($token) || null === $expectedToken || !hash_equals((string)$expectedToken, $token)) {
-            $this->success = false;
-            throw new \rex_api_exception('Ungültiger Token für das Löschen des Caches.');
+        if (empty($token) || $token !== $expectedToken) {
+            $this->sendErrorResponse('Ungültiger Token für das Löschen des Caches.', 403);
+            exit;
         }
         
         // Benutzten Token entfernen
         $addon->removeConfig($tokenKey);
         
-        $count = \FriendsOfRedaxo\CssAboveTheFold\CssAboveTheFold::deleteAllCacheFiles();
+        $cacheDir = rex_path::addonCache('css_above_the_fold');
+        $files = glob($cacheDir . '*.css');
+        $count = 0;
         
-        // Erfolgreiche Antwort befüllen
-        $this->success = true;
-        $this->response['status'] = 'success';
-        $this->response['count'] = $count;
-        $this->response['message'] = "Cache erfolgreich gelöscht. {$count} Dateien wurden entfernt.";
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                if (rex_file::delete($file)) {
+                    $count++;
+                }
+            }
+        }
+        
+        // Erfolgreiche Antwort senden
+        $this->sendSuccessResponse([
+            'count' => $count,
+            'message' => "Cache erfolgreich gelöscht. {$count} Dateien wurden entfernt."
+        ]);
+        exit;
     }
     
     /**
-     * Standard-Funktion, wenn keine Methode angegeben oder nicht gefunden wurde
-     */
-    protected function __default(): void
-    {
-         $this->success = false;
-         throw new \rex_api_exception('Keine gültige API-Methode angegeben.');
-    }
-    
-    /**
-     * Hilfsmethode zum Protokollieren von Fehlern
+     * Sendet eine Erfolgsantwort
      * 
-     * @param int $level Fehlerlevel (E_ERROR, E_WARNING, etc.)
-     * @param string $message Fehlermeldung
-     * @param string $file Datei, in der der Fehler aufgetreten ist (optional)
-     * @param int $line Zeile, in der der Fehler aufgetreten ist (optional)
+     * @param array $data Die zu sendenden Daten
      */
-    private function logError(int $level, string $message, string $file = __FILE__, int $line = __LINE__): void
+    private function sendSuccessResponse(array $data)
     {
-        \rex_logger::logError($level, $message, $file, $line);
+        $response = array_merge(['status' => 'success'], $data);
+        rex_response::setHeader('Content-Type', 'application/json');
+        echo json_encode($response);
+    }
+    
+    /**
+     * Sendet eine Fehlerantwort
+     * 
+     * @param string $message Die Fehlermeldung
+     * @param int $statusCode Der HTTP-Statuscode
+     */
+    private function sendErrorResponse($message, $statusCode = 400)
+    {
+        rex_response::setStatus($statusCode);
+        rex_response::setHeader('Content-Type', 'application/json');
+        echo json_encode([
+            'status' => 'error',
+            'message' => $message
+        ]);
+    }
+    
+    /**
+     * Liefert den Pfad zur Cache-Datei für das Critical CSS
+     * 
+     * @param string $viewport Der Viewport
+     * @param int $article_id Die Artikel-ID
+     * @param int $clang_id Die Sprach-ID
+     * @return string Pfad zur Cache-Datei
+     */
+    private function getCacheFile($viewport, $article_id, $clang_id)
+    {
+        // Viewport-Namen bereinigen, um Directory Traversal oder ungültige Zeichen zu verhindern
+        $viewport = preg_replace('/[^a-zA-Z0-9_-]/', '', $viewport);
+        
+        // IDs als Integers sicherstellen
+        $article_id = (int) $article_id;
+        $clang_id = (int) $clang_id;
+        
+        return rex_path::addonCache('css_above_the_fold', $viewport . '_' . $article_id . '_' . $clang_id . '.css');
     }
 }
