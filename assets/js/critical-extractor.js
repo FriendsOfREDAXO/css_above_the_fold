@@ -1,7 +1,7 @@
 /**
  * CSS Above The Fold - Critical CSS Extractor
  * 
- * Dieses Skript extrahiert das für den sichtbaren Bereich einer Webseite 
+ * Extrahiert das für den sichtbaren Bereich einer Webseite 
  * benötigte CSS und sendet es an den Server, um es für zukünftige 
  * Besuche zwischenzuspeichern.
  */
@@ -14,21 +14,25 @@
                 var criticalCssExtractor = {
                     // Konfiguration
                     config: {
-                        // Diese Werte werden vom PHP-Code beim Einbinden des Skripts ersetzt
-                        viewport: 'VIEWPORT',
-                        article_id: 0,
-                        clang_id: 0,
-                        token: 'TOKEN',
-                        apiUrl: 'API_URL',
+                        // Diese Werte werden bei der Einbindung ersetzt
+                        viewport: '{{VIEWPORT}}',
+                        article_id: {{ARTICLE_ID}},
+                        clang_id: {{CLANG_ID}},
+                        token: '{{TOKEN}}',
+                        apiUrl: '{{API_URL}}',
                         viewportHeight: window.innerHeight,
                         viewportWidth: window.innerWidth,
-                        alwaysIncludeSelectors: [],
-                        neverIncludeSelectors: []
+                        includeCssVars: {{INCLUDE_CSS_VARS}},
+                        preserveImportantRules: {{PRESERVE_IMPORTANT_RULES}},
+                        alwaysIncludeSelectors: '{{ALWAYS_INCLUDE}}'.split(/\r?\n/).filter(Boolean),
+                        neverIncludeSelectors: '{{NEVER_INCLUDE}}'.split(/\r?\n/).filter(Boolean)
                     },
                     
                     // Cache für verarbeitete Elemente
                     processedSelectors: new Set(),
                     processedRules: new Set(),
+                    extractionStartTime: Date.now(),
+                    extractedBytes: 0,
                     
                     // Debug-Modus
                     debugMode: false,
@@ -54,6 +58,11 @@
                         var viewportWidth = this.config.viewportWidth;
 
                         try {
+                            // Standardmäßig CSS-Variablen einschließen, wenn konfiguriert
+                            if (this.config.includeCssVars) {
+                                styles += this.extractCssVariables();
+                            }
+                            
                             // Alle Elemente im DOM auswählen
                             var elements = document.querySelectorAll("*");
                             var visibleElements = [];
@@ -98,14 +107,20 @@
                                     
                                     // CSS für diesen Selektor extrahieren
                                     if (!this.processedSelectors.has(selector)) {
-                                        styles += this.extractSelectorStyles(selector);
-                                        this.processedSelectors.add(selector);
+                                        var selectorCss = this.extractSelectorStyles(selector);
+                                        if (selectorCss) {
+                                            styles += selectorCss;
+                                            this.processedSelectors.add(selector);
+                                        }
                                     }
                                     
                                     // Eltern-Selektor verarbeiten, falls vorhanden
                                     if (selectorInfo.parentSelector && !this.processedSelectors.has(selectorInfo.parentSelector)) {
-                                        styles += this.extractSelectorStyles(selectorInfo.parentSelector);
-                                        this.processedSelectors.add(selectorInfo.parentSelector);
+                                        var parentCss = this.extractSelectorStyles(selectorInfo.parentSelector);
+                                        if (parentCss) {
+                                            styles += parentCss;
+                                            this.processedSelectors.add(selectorInfo.parentSelector);
+                                        }
                                     }
                                 }
                             }
@@ -115,8 +130,11 @@
                                 // Grundlegende Bereinigung: Leere Regeln entfernen
                                 styles = styles.replace(/@[^\{]+\{\s*\}/gm, '').replace(/[^\{]+\{\s*\}/gm, '');
                                 
+                                this.extractedBytes = styles.length;
+                                
                                 if (this.debugMode) {
                                     console.log('[CriticalCSS] Extracted ' + styles.length + ' bytes of CSS');
+                                    console.log('[CriticalCSS] Extraction took ' + (Date.now() - this.extractionStartTime) + 'ms');
                                 }
                                 
                                 this.sendCriticalCss(styles.trim());
@@ -128,6 +146,29 @@
                         } catch (e) {
                             console.error("[CriticalCSS] Error during extraction:", e);
                         }
+                    },
+                    
+                    /**
+                     * Extrahiert alle CSS-Variablen aus :root und html-Selektoren
+                     */
+                    extractCssVariables: function() {
+                        var cssVars = "";
+                        var rootSelectors = [":root", "html", "body"];
+                        
+                        rootSelectors.forEach(selector => {
+                            if (!this.processedSelectors.has(selector)) {
+                                var selectorStyles = this.extractSelectorStyles(selector);
+                                if (selectorStyles) {
+                                    // Nur CSS-Variablen behalten
+                                    if (selectorStyles.includes("--")) {
+                                        cssVars += selectorStyles;
+                                        this.processedSelectors.add(selector);
+                                    }
+                                }
+                            }
+                        });
+                        
+                        return cssVars;
                     },
                     
                     /**
@@ -315,7 +356,17 @@
                                             var ruleSelector = rule.selectorText;
                                             
                                             if (ruleSelector && this.doesRuleMatchSelector(ruleSelector, selector)) {
-                                                ruleText = rule.cssText;
+                                                // Bei preserveImportantRules prüfen wir auf !important
+                                                if (this.config.preserveImportantRules) {
+                                                    var containsImportant = rule.cssText.includes("!important");
+                                                    if (containsImportant) {
+                                                        ruleText = rule.cssText;
+                                                    } else {
+                                                        ruleText = rule.cssText;
+                                                    }
+                                                } else {
+                                                    ruleText = rule.cssText;
+                                                }
                                             }
                                         } 
                                         // CSSMediaRule (Media Queries)
@@ -392,21 +443,35 @@
                      * Prüft, ob ein Regel-Selektor mit einem Element-Selektor übereinstimmt
                      */
                     doesRuleMatchSelector: function(ruleSelectorText, elementSelector) {
-                        // Schnelle Vorprüfung basierend auf dem Tag-Namen
-                        if (!ruleSelectorText.includes(elementSelector.split(/#|\./)[0])) {
-                            return false;
-                        }
-                        
-                        // Auf exakte Übereinstimmung prüfen
+                        // Multi-Selektoren aufspalten
                         var ruleSelectors = ruleSelectorText.split(',').map(s => s.trim());
                         
-                        if (ruleSelectors.includes(elementSelector)) {
-                            return true;
+                        // Prüfung auf exakte Übereinstimmung oder Teil-Selektor-Übereinstimmung
+                        for (var i = 0; i < ruleSelectors.length; i++) {
+                            var ruleSelector = ruleSelectors[i];
+                            
+                            // Exakte Übereinstimmung
+                            if (ruleSelector === elementSelector) {
+                                return true;
+                            }
+                            
+                            // Klassen-/ID-basierte Prüfung
+                            if (elementSelector.includes('.') || elementSelector.includes('#')) {
+                                // Einfache Teilstring-Prüfung
+                                if (ruleSelector.includes(elementSelector) || 
+                                    elementSelector.includes(ruleSelector)) {
+                                    return true;
+                                }
+                            } else {
+                                // Tag-basierte Prüfung (z.B. "div")
+                                var elTag = elementSelector.split(/[.#\[]/)[0];
+                                if (elTag && ruleSelector.startsWith(elTag)) {
+                                    return true;
+                                }
+                            }
                         }
-
-                        // Vereinfachte Prüfung: Wenn der elementSelector im ruleSelectorText enthalten ist,
-                        // nehmen wir eine potenzielle Übereinstimmung an
-                        return ruleSelectorText.includes(elementSelector);
+                        
+                        return false;
                     },
                     
                     /**
@@ -446,6 +511,7 @@
                                   "&article_id=" + encodeURIComponent(this.config.article_id) + 
                                   "&clang_id=" + encodeURIComponent(this.config.clang_id) + 
                                   "&token=" + encodeURIComponent(this.config.token) + 
+                                  "&extraction_time=" + encodeURIComponent(Date.now() - this.extractionStartTime) +
                                   "&css=" + encodeURIComponent(css);
                         
                         try {
